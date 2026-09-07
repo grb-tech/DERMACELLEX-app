@@ -1,1 +1,0 @@
-# DERMACELLEX-app
