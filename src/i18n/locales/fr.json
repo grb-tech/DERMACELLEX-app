@@ -1,0 +1,78 @@
+{
+  "common": {
+    "next": "Suivant", "prev": "Retour", "submit": "Envoyer", "confirm": "Confirmer", "cancel": "Annuler",
+    "close": "Fermer", "save": "Enregistrer", "loading": "Chargement...", "required": "Obligatoire", "optional": "Facultatif",
+    "select": "Veuillez sélectionner", "other": "Autre", "yes": "Oui", "no": "Non",
+    "error": "Une erreur est survenue", "retry": "Réessayer",
+    "step": "{{current}} / {{total}}", "section": "Section {{num}}", "langLabel": "Langue"
+  },
+  "intro": {
+    "badge": "Partenaire de Fabrication Cosmétique",
+    "title": "Trouvez le service\nde fabrication idéal",
+    "subtitle": "Une évaluation rapide pour recommander le meilleur\npartenariat OEM · ODM · OCM · OBM pour vous.",
+    "cta": "Commencer l'évaluation gratuite", "time": "Environ 5 minutes", "trust": "Plus de {{count}} consultations réalisées"
+  },
+  "services": {
+    "oem": "OEM", "oem_full": "Original Equipment Manufacturing", "oem_desc": "Fabrication sous contrat avec votre propre formule",
+    "odm": "ODM", "odm_full": "Original Design Manufacturing", "odm_desc": "Du développement de formule à la production — tout-en-un",
+    "ocm": "OCM", "ocm_full": "Original Concept Management", "ocm_desc": "Concept · Design · Développement · Production — gestion complète",
+    "obm": "OBM", "obm_full": "Original Brand Manufacturing", "obm_desc": "Solution complète du lancement de marque à la distribution",
+    "note_oem_odm": "Recommandé si vous détenez une licence de vente de cosmétiques ou une marque classe 03"
+  },
+  "diagnosis": {
+    "title": "Évaluation", "progress": "Question {{current}} / {{total}}",
+    "s1_title": "Préparation entreprise et marque", "s2_title": "Planification produit et production",
+    "s3_title": "Capacité de production et commande", "s4_title": "Exécution de projet", "s5_title": "Ventes et collaboration",
+    "q1": "Statut d'enregistrement d'entreprise ?", "q1_a1": "Société", "q1_a2": "Entreprise individuelle", "q1_a3": "En préparation", "q1_a4": "Non enregistré",
+    "q2": "Licence de vente responsable de cosmétiques ?", "q2_a1": "Obtenue", "q2_a2": "En préparation", "q2_a3": "Non applicable / Inconnu",
+    "q3": "Marque classe 03 (cosmétiques) ?", "q3_a1": "Enregistrée", "q3_a2": "En cours", "q3_a3": "Non",
+    "q4": "Identité de marque (BI) établie ?", "q4_a1": "BI complète (logo + guide)", "q4_a2": "Logo seulement", "q4_a3": "Phase conceptuelle",
+    "q5": "Expérience en développement produit ?", "q5_a1": "3 fois ou plus", "q5_a2": "1–2 fois", "q5_a3": "Première fois",
+    "q6": "Catégorie de produit définie ?", "q6_a1": "Confirmée", "q6_a2": "Quelques options", "q6_a3": "Non décidé",
+    "q7": "Possédez-vous votre propre formule ?", "q7_a1": "Oui (tests terminés)", "q7_a2": "Partiellement", "q7_a3": "Non",
+    "q8": "Ingrédients ou concept cible ?", "q8_a1": "Confirmés", "q8_a2": "Direction seulement", "q8_a3": "Non décidé",
+    "q9": "Design produit (emballage) prêt ?", "q9_a1": "Maquette terminée", "q9_a2": "Collecte de références", "q9_a3": "Non commencé",
+    "q10": "Quantité de production initiale ?", "q10_a1": "Plus de 5 000", "q10_a2": "1 000–5 000", "q10_a3": "Moins de 1 000", "q10_a4": "Non décidé",
+    "q11": "Fourchette de coût cible ?", "q11_a1": "Calcul détaillé", "q11_a2": "Estimation approximative", "q11_a3": "Inconnu",
+    "q12": "Délai de livraison souhaité ?", "q12_a1": "Dans 3 mois", "q12_a2": "3–6 mois", "q12_a3": "Après 6 mois / Non décidé",
+    "q13": "Fournisseurs de matières premières ?", "q13_a1": "Sécurisés", "q13_a2": "Partiellement", "q13_a3": "Non",
+    "q14": "Standards de contrôle qualité ?", "q14_a1": "Manuel QC propre", "q14_a2": "Standards de base", "q14_a3": "Délégué au fabricant",
+    "q15": "Équipe dédiée au projet ?", "q15_a1": "Équipe dédiée", "q15_a2": "1 personne", "q15_a3": "Non assigné",
+    "q16": "Budget sécurisé ?", "q16_a1": "Totalement", "q16_a2": "Partiellement", "q16_a3": "Non",
+    "q17": "Expérience en licences ?", "q17_a1": "Oui", "q17_a2": "Partielle", "q17_a3": "Non",
+    "q18": "Canaux de vente établis ?", "q18_a1": "Online et offline", "q18_a2": "Un seul canal", "q18_a3": "Non",
+    "q19": "Plans d'exportation ?", "q19_a1": "En cours", "q19_a2": "Planifié", "q19_a3": "National seulement / Non décidé",
+    "q20": "Capacité marketing ?", "q20_a1": "Équipe interne", "q20_a2": "Agence externe", "q20_a3": "Non préparé"
+  },
+  "result": {
+    "title": "Résultat", "recommended": "Service recommandé", "yourMatch": "Ce service est le plus adapté pour vous.",
+    "compareAll": "Comparer tous", "selectService": "Sélectionner", "selected": "Sélectionné", "proceedWith": "Continuer avec {{service}}"
+  },
+  "customerInfo": {
+    "title": "Vos informations", "subtitle": "Veuillez fournir les informations de base pour la consultation.",
+    "companyType": "Type d'entreprise", "companyType_corp": "Société", "companyType_ind": "Individuel", "companyType_prep": "En préparation",
+    "companyName": "Société / Nom", "companyName_ph": "Nom de la société ou nom complet",
+    "country": "Pays", "country_ph": "Pays d'activité",
+    "contactName": "Personne de contact", "contactName_ph": "Nom complet",
+    "phone": "Téléphone", "phone_ph": "+33-0-00-00-00-00",
+    "email": "E-mail", "email_ph": "example@email.com", "emailInvalid": "Veuillez entrer un e-mail valide."
+  },
+  "meeting": {
+    "title": "Rendez-vous", "subtitle": "Sélectionnez vos dates préférées.\nJours ouvrables, 09h00–18h00 heure coréenne",
+    "preferred1": "Date préférée 1", "preferred2": "Date préférée 2", "selectDate": "Choisir la date", "selectTime": "Choisir l'heure",
+    "weekdayOnly": "Jours ouvrables uniquement.", "kstNote": "Toutes les heures en heure standard coréenne (KST, UTC+9)."
+  },
+  "submission": {
+    "title": "Envoi réussi", "message": "Vos résultats et informations de consultation ont été envoyés avec succès.",
+    "nextStep": "Un gestionnaire sera assigné et un e-mail guide sera envoyé à l'adresse fournie.",
+    "devFormTitle": "Formulaire de développement", "devFormDesc": "Souhaitez-vous remplir le formulaire de développement\npour un devis plus précis ?",
+    "devFormCta": "Remplir le formulaire", "devFormLater": "Plus tard",
+    "estimateNote": "Un devis préliminaire sera calculé à partir des informations fournies.\nLe devis final sera basé sur les spécifications confirmées."
+  },
+  "devForm": {
+    "title": "Formulaire de développement", "subtitle": "Fournissez les informations détaillées pour le développement produit.",
+    "sec1": "Informations de base", "sec2": "Concept de développement", "sec3": "Standards de formule",
+    "sec4": "Détails du contenu", "sec5": "Réglementations d'export", "sec6": "Emballage et matériaux", "sec7": "Exigences clés"
+  },
+  "footer": { "company": "BSG Holdings", "brand": "DERMACELLEX", "privacy": "Politique de confidentialité", "terms": "Conditions d'utilisation" }
+}
