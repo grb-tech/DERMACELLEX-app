@@ -127,12 +127,13 @@ export default async function handler(req, res) {
     if (!inquiryPage) {
       return res.status(404).json({ success: false, error: '연결된 문의 내역을 찾을 수 없습니다.' });
     }
-    const inquiryId = inquiryPage.id;
-
+    // 미팅 · 제품개발의뢰서는 문의 1건이 아니라 거래처 전체 기준으로 모은다 — 문의를 여러 번
+    // 넣은 거래처도 예전 의뢰서 · 예전 상담까지 전용 페이지에서 전부 보이도록.
     const [meetings, devreqs, clientPage, contactPage] = await Promise.all([
-      queryDb(TOKEN, DB.MEETING, { property: '제조 문의 관리', relation: { contains: inquiryId } },
+      queryDb(TOKEN, DB.MEETING, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
-      queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 문의 관리', relation: { contains: inquiryId } }),
+      queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+        [{ timestamp: 'created_time', direction: 'descending' }]),
       notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null),
       notionCall(TOKEN, 'GET', `/pages/${contactId}`).catch(() => null),
     ]);
