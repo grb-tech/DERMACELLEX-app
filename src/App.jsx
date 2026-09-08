@@ -995,6 +995,28 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     }
   };
 
+  // ─── 전용 페이지 대시보드에서 곧장 새 제조 문의 시작하기 — 이미 코드로 인증된 이메일을
+  // 그대로 재사용해 08 화면(기존 고객 재문의)과 같은 통계 · 이력을 불러온다. ───
+  const startNewInquiryFromPortal = async () => {
+    if (!portalEmail) return;
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/lookup-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: portalEmail.trim() }),
+      });
+      const result = await res.json();
+      if (!result.success || !result.found) throw new Error("고객 정보를 확인하지 못했습니다.");
+      setExistingCustomer(result);
+      setSubmitSt(null);
+      setPhase("returning");
+    } catch (err) {
+      console.error("Start new inquiry from portal error:", err);
+      setSubmitSt(null);
+    }
+  };
+
   // ─── Shared Styles ───
   const wrap = {
     maxWidth: 440, margin: "0 auto", minHeight: "100dvh",
@@ -1484,9 +1506,14 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>다시 오셨네요</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>등록된 거래처로 확인되어 진단을 건너뜁니다</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {portalData && (
+              <button onClick={() => setPhase("portal")} style={backBtn}>←</button>
+            )}
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>다시 오셨네요</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>등록된 거래처로 확인되어 진단을 건너뜁니다</div>
+            </div>
           </div>
 
           <div style={{ background: "#111", borderRadius: 22, padding: 20, color: "#fff", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -2181,6 +2208,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 )}
               </div>
             )}
+
+            <button onClick={startNewInquiryFromPortal} disabled={submitSt === "loading"} style={{
+              height: 54, border: "1.5px dashed #C4C4C6", borderRadius: 18, background: "transparent", color: "#434343",
+              fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
+              opacity: submitSt === "loading" ? 0.6 : 1,
+            }}>{submitSt === "loading" ? "확인 중..." : "+ 새 제조 문의 시작하기"}</button>
           </>)}
 
           {portalTab === "inquiry" && (<>

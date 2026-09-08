@@ -1,14 +1,14 @@
-// 코드를 못 받았거나 잃어버린 고객을 위한 재발급. 이메일만 입력받는다 — 원본 코드를 절대
-// 노션에 저장하지 않는 정책(md 문서 "고객 페이지 접근 이력" 보안 기준)이라 담당자도 기존 코드를
-// 조회해서 알려줄 방법이 없고, 재발급이 유일한 복구 경로다.
+// 코드를 못 받았거나 잃어버린 고객을 위한 재전송. 이메일만 입력받는다.
 //
-// 기존 활성 코드는 폐기 처리하고 새 코드를 발급 · 발송한다. 등록된 이메일이 아니어도 같은
-// 성공 메시지를 돌려줘 이메일 등록 여부가 외부에 노출되지 않게 한다.
+// 2026-09-08(2): "거래처당 코드 1개" 정책으로 바뀌면서 이 엔드포인트는 더 이상 코드를 폐기하고
+// 새로 만들지 않는다 — issueAccessCode가 거래처에 이미 있는 코드를 그대로 찾아 같은 코드를
+// 다시 이메일로 보내주기만 한다(회사 내 다른 담당자가 같은 이메일로 조회해도 항상 같은 코드).
+// 등록된 이메일이 아니어도 같은 성공 메시지를 돌려줘 이메일 등록 여부가 외부에 노출되지 않게 한다.
 
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
 import { issueAccessCode } from './_access.mjs';
 
-const GENERIC_OK = { success: true, message: '등록된 이메일이면 코드가 재발송됩니다.' };
+const GENERIC_OK = { success: true, message: '등록된 이메일이면 코드를 보내드렸습니다.' };
 
 export default async function handler(req, res) {
   cors(res);
@@ -23,32 +23,16 @@ export default async function handler(req, res) {
     if (!email) return res.status(400).json({ success: false, error: '이메일을 입력해주세요.' });
 
     const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '이메일', email: { equals: email } });
-    const contactIds = (contacts.results || []).map(p => p.id);
-    if (contactIds.length === 0) return res.status(200).json(GENERIC_OK);
+    const contactPage = (contacts.results || [])[0];
+    if (!contactPage) return res.status(200).json(GENERIC_OK);
 
-    for (const contactId of contactIds) {
-      const access = await queryDb(TOKEN, DB.ACCESS, {
-        and: [
-          { property: '의뢰 담당자', relation: { contains: contactId } },
-          { property: '코드 폐기', checkbox: { equals: false } },
-        ],
-      }, [{ timestamp: 'created_time', direction: 'descending' }]);
+    const clientId = contactPage.properties?.['거래처명']?.relation?.[0]?.id;
+    if (!clientId) return res.status(200).json(GENERIC_OK);
 
-      const latest = (access.results || [])[0];
-      if (!latest) continue;
+    const clientPage = await notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null);
+    const businessName = clientPage ? plain(clientPage.properties?.['법인 · 개인명'], 'title') : '';
 
-      const inquiryId = latest.properties?.['제조 문의 관리']?.relation?.[0]?.id;
-      const clientId = latest.properties?.['제조 의뢰 거래처']?.relation?.[0]?.id;
-      if (!inquiryId) continue;
-
-      await notionCall(TOKEN, 'PATCH', `/pages/${latest.id}`, {
-        properties: { '코드 폐기': { checkbox: true } },
-      });
-
-      const businessName = plain(latest.properties?.['접근권한명'], 'title').replace(' 전용 페이지 접근', '');
-      await issueAccessCode(TOKEN, { inquiryId, clientId, contactId, businessName, contactEmail: email });
-      break; // 한 번에 하나의 이메일만 재발송한다(여러 문의가 있어도 메일이 중복 발송되지 않게)
-    }
+    await issueAccessCode(TOKEN, { clientId, contactId: contactPage.id, businessName, contactEmail: email });
 
     return res.status(200).json(GENERIC_OK);
   } catch (err) {

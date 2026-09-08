@@ -1,8 +1,10 @@
 // 전용 페이지 로그인 — 이메일 + 6자리 코드로 인증한다. 코드를 이메일로 보내므로 로그인도
 // 같은 이메일을 기준으로 맞췄다(md 문서 13장 "고객 인증 방식"은 아직 미확정 사항으로 남아있음).
 //
-// 원본 코드를 저장하지 않으므로, 후보 접근 이력마다 같은 방식(sha256(code:제조문의ID))으로
-// 해시를 다시 계산해 '코드 검증값'과 비교하는 방식으로 검증한다.
+// 2026-09-08(2): 코드가 "거래처당 1개"로 바뀌면서, 인증도 문의 단위가 아니라 거래처 단위로
+// 한다 — 이메일로 담당자를 찾고, 그 담당자가 속한 거래처의 활성 코드와 대조한다(해시는
+// sha256(code:거래처ID)). 로그인에 성공하면 그 거래처의 가장 최근 문의를 대시보드에 보여준다.
+// 원본 코드를 저장하지 않으므로 후보마다 같은 방식으로 해시를 다시 계산해 대조한다.
 
 import crypto from 'crypto';
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
@@ -74,30 +76,30 @@ export default async function handler(req, res) {
     }
 
     const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '이메일', email: { equals: email } });
-    const contactIds = (contacts.results || []).map(p => p.id);
-    if (contactIds.length === 0) {
+    const contactList = contacts.results || [];
+    if (contactList.length === 0) {
       return res.status(401).json({ success: false, error: '일치하는 정보를 찾을 수 없습니다.' });
     }
 
     let matched = null;
     let lastCandidate = null;
-    for (const contactId of contactIds) {
+    for (const contactPage of contactList) {
+      const clientId = contactPage.properties?.['거래처명']?.relation?.[0]?.id;
+      if (!clientId) continue;
+
       const access = await queryDb(TOKEN, DB.ACCESS, {
         and: [
-          { property: '의뢰 담당자', relation: { contains: contactId } },
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
           { property: '코드 폐기', checkbox: { equals: false } },
         ],
       }, [{ timestamp: 'created_time', direction: 'descending' }]);
 
-      for (const rec of access.results || []) {
-        const inquiryId = rec.properties?.['제조 문의 관리']?.relation?.[0]?.id;
-        if (!inquiryId) continue;
-        lastCandidate = rec;
-        const expect = crypto.createHash('sha256').update(`${code}:${inquiryId}`).digest('hex');
-        const stored = plain(rec.properties?.['코드 검증값'], 'text');
-        if (stored && stored === expect) { matched = { rec, inquiryId }; break; }
-      }
-      if (matched) break;
+      const rec = (access.results || [])[0];
+      if (!rec) continue;
+      lastCandidate = rec;
+      const expect = crypto.createHash('sha256').update(`${code}:${clientId}`).digest('hex');
+      const stored = plain(rec.properties?.['코드 검증값'], 'text');
+      if (stored && stored === expect) { matched = { rec, clientId, contactId: contactPage.id }; break; }
     }
 
     const today = new Date().toISOString().substring(0, 10);
@@ -116,17 +118,23 @@ export default async function handler(req, res) {
       properties: { '마지막 접속일': { date: { start: today } } },
     }).catch(() => {});
 
-    const inquiryId = matched.inquiryId;
-    const clientId = matched.rec.properties?.['제조 의뢰 거래처']?.relation?.[0]?.id;
-    const contactId = matched.rec.properties?.['의뢰 담당자']?.relation?.[0]?.id;
+    const { clientId, contactId } = matched;
 
-    const [inquiryPage, meetings, devreqs, clientPage, contactPage] = await Promise.all([
-      notionCall(TOKEN, 'GET', `/pages/${inquiryId}`),
+    // 이 거래처의 가장 최근 문의를 대시보드에 보여준다(문의가 여러 건이어도 코드는 하나뿐).
+    const inquiries = await queryDb(TOKEN, DB.INQUIRY, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+      [{ timestamp: 'created_time', direction: 'descending' }]);
+    const inquiryPage = (inquiries.results || [])[0];
+    if (!inquiryPage) {
+      return res.status(404).json({ success: false, error: '연결된 문의 내역을 찾을 수 없습니다.' });
+    }
+    const inquiryId = inquiryPage.id;
+
+    const [meetings, devreqs, clientPage, contactPage] = await Promise.all([
       queryDb(TOKEN, DB.MEETING, { property: '제조 문의 관리', relation: { contains: inquiryId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
       queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 문의 관리', relation: { contains: inquiryId } }),
-      clientId ? notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null) : Promise.resolve(null),
-      contactId ? notionCall(TOKEN, 'GET', `/pages/${contactId}`).catch(() => null) : Promise.resolve(null),
+      notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null),
+      notionCall(TOKEN, 'GET', `/pages/${contactId}`).catch(() => null),
     ]);
 
     const latestMeeting = (meetings.results || [])[0];
@@ -146,9 +154,11 @@ export default async function handler(req, res) {
         status: plain(inquiryPage.properties?.['상태'], 'status'),
       },
       client: {
+        id: clientId,
         name: clientPage ? plain(clientPage.properties?.['법인 · 개인명'], 'title') : '',
       },
       contact: {
+        id: contactId,
         name: contactPage ? plain(contactPage.properties?.['담당자명'], 'title') : '',
       },
       meeting: latestMeeting ? {
