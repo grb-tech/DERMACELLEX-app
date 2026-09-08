@@ -318,6 +318,22 @@ function isSlotBooked(bookedList, dateStr, timeStr) {
   });
 }
 
+// 한국 법정 공휴일(대체공휴일 포함, 2026~2027) — 주말과 겹치는 날짜는 요일 검사로 이미 걸러지므로
+// 평일에 해당하는 날짜만 담았다. 해마다(특히 설날 · 추석 · 부처님오신날 등 음력 기준 공휴일) 갱신이 필요하다.
+const KR_HOLIDAYS = new Set([
+  "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02",
+  "2026-05-01", "2026-05-05", "2026-05-25", "2026-08-17",
+  "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25",
+  "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-01",
+  "2027-05-05", "2027-05-13", "2027-08-16",
+  "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11", "2027-12-27",
+]);
+function isWeekendOrHoliday(dateStr) {
+  if (!dateStr) return false;
+  const dow = new Date(`${dateStr}T00:00:00`).getDay();
+  return dow === 0 || dow === 6 || KR_HOLIDAYS.has(dateStr);
+}
+
 const COUNTRIES = [
   "대한민국", "미국", "일본", "중국", "베트남", "태국", "인도네시아",
   "말레이시아", "필리핀", "싱가포르", "호주", "캐나다", "영국", "독일",
@@ -802,6 +818,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     const todayStr = new Date().toISOString().slice(0, 10);
     if (form.meetingDate1 < todayStr || (form.meetingDate2 && form.meetingDate2 < todayStr)) {
       setErrors({ meetingDate1: "지난 날짜는 선택할 수 없습니다" });
+      return;
+    }
+    if (isWeekendOrHoliday(form.meetingDate1) || isWeekendOrHoliday(form.meetingDate2)) {
+      setErrors({ meetingDate1: "주말 · 공휴일은 선택할 수 없습니다" });
       return;
     }
     if (isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1) || isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2)) {
@@ -1650,6 +1670,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     const slot1Booked = isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1);
     const slot2Booked = isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2);
     const todayStr = new Date().toISOString().slice(0, 10);
+    const holiday1 = isWeekendOrHoliday(form.meetingDate1);
+    const holiday2 = isWeekendOrHoliday(form.meetingDate2);
 
     const timeSelect = (dateVal, timeVal, onChange) => (
       <select value={timeVal || ""} onChange={e => onChange(e.target.value)} style={uInp}>
@@ -1682,18 +1704,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 1 (필수)</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input type="date" min={todayStr} value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
-                    style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
+                    style={{ ...uInp, borderBottom: `1.5px solid ${(errors.meetingDate1 || holiday1) ? C.error : "#E4E4E4"}` }} />
                   {timeSelect(form.meetingDate1, form.meetingTime1, v => setField("meetingTime1", v))}
                 </div>
-                {slot1Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
+                {holiday1 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.</div>}
+                {!holiday1 && slot1Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
               </div>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 2 (선택)</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input type="date" min={todayStr} value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
+                  <input type="date" min={todayStr} value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)}
+                    style={{ ...uInp, borderBottom: `1.5px solid ${holiday2 ? C.error : "#E4E4E4"}` }} />
                   {timeSelect(form.meetingDate2, form.meetingTime2, v => setField("meetingTime2", v))}
                 </div>
-                {slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
+                {holiday2 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.</div>}
+                {!holiday2 && slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
               </div>
             </div>
             <Err f="meetingDate1" />
@@ -1712,10 +1737,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           </div>
         </div>
         <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4" }}>
-          <button onClick={submitMeeting} disabled={submitSt === "loading" || slot1Booked || slot2Booked} style={{
+          <button onClick={submitMeeting} disabled={submitSt === "loading" || slot1Booked || slot2Booked || holiday1 || holiday2} style={{
             width: "100%", height: 52, border: 0, borderRadius: 16, background: submitSt === "error" ? C.error : "#111",
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
-            opacity: (submitSt === "loading" || slot1Booked || slot2Booked) ? 0.6 : 1,
+            opacity: (submitSt === "loading" || slot1Booked || slot2Booked || holiday1 || holiday2) ? 0.6 : 1,
           }}>
             {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "상담 신청하기"}
           </button>

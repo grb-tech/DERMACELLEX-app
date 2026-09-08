@@ -5,7 +5,7 @@
 // 2026-09-08: 노션 실제 스키마를 다시 확인해보니 '미팅 일시'라는 속성은 존재하지 않았다(오기).
 // 실제 속성명인 '희망 미팅일1' · '희망 미팅일2'(둘 다 date 타입) 기준으로 재작성.
 
-import { DB, createPage, notionCall, queryDb, cors, title, select } from './_notion.mjs';
+import { DB, createPage, notionCall, queryDb, cors, title, select, isWeekendOrHoliday } from './_notion.mjs';
 import { issueAccessCode } from './_access.mjs';
 
 export default async function handler(req, res) {
@@ -27,6 +27,9 @@ export default async function handler(req, res) {
     const todayStr = new Date().toISOString().slice(0, 10);
     if (meetingDate1 < todayStr || (meetingDate2 && meetingDate2 < todayStr)) {
       return res.status(400).json({ success: false, error: '지난 날짜는 선택할 수 없습니다.' });
+    }
+    if (isWeekendOrHoliday(meetingDate1) || isWeekendOrHoliday(meetingDate2)) {
+      return res.status(400).json({ success: false, error: '주말 · 공휴일은 선택할 수 없습니다.' });
     }
 
     const properties = {
