@@ -1,5 +1,5 @@
-// 전용 페이지 로그인 — 휴대전화번호 + 6자리 코드로 인증한다(md 문서 13장 "고객 인증 방식"
-// 항목이 아직 미확정이라, 이미 폼에서 수집 중인 연락처를 1차 식별자로 임의 채택했다).
+// 전용 페이지 로그인 — 이메일 + 6자리 코드로 인증한다. 코드를 이메일로 보내므로 로그인도
+// 같은 이메일을 기준으로 맞췄다(md 문서 13장 "고객 인증 방식"은 아직 미확정 사항으로 남아있음).
 //
 // 원본 코드를 저장하지 않으므로, 후보 접근 이력마다 같은 방식(sha256(code:제조문의ID))으로
 // 해시를 다시 계산해 '코트 검증값'과 비교하는 방식으로 검증한다.
@@ -16,13 +16,13 @@ export default async function handler(req, res) {
   if (!TOKEN) return res.status(500).json({ success: false, error: 'NOTION_TOKEN not set' });
 
   try {
-    const phone = (req.body.phone || '').trim();
+    const email = (req.body.email || '').trim();
     const code = (req.body.code || '').trim();
-    if (!phone || !/^\d{6}$/.test(code)) {
-      return res.status(400).json({ success: false, error: '연락처와 6자리 코드를 정확히 입력해주세요.' });
+    if (!email || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, error: '이메일과 6자리 코드를 정확히 입력해주세요.' });
     }
 
-    const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '연락처', phone_number: { equals: phone } });
+    const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '이메일', email: { equals: email } });
     const contactIds = (contacts.results || []).map(p => p.id);
     if (contactIds.length === 0) {
       return res.status(401).json({ success: false, error: '일치하는 정보를 찾을 수 없습니다.' });

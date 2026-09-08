@@ -380,9 +380,10 @@ function ProgressBar({ current, total }) {
 
 // ━━━━━━━━━━ MAIN APP ━━━━━━━━━━
 export default function App() {
-  // ─── Check for dev-request form route ───
+  // ─── Check for dev-request form route / 전용 페이지 이메일 링크(magic link) ───
   const [route, setRoute] = useState("main");
   const [clientId, setClientId] = useState(null);
+  const [portalAuto, setPortalAuto] = useState(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -391,15 +392,18 @@ export default function App() {
       // inquiry = 제조 문의 관리 페이지 ID (V2 스키마 기준, 신규 링크).
       // client/id는 예전에 이미 발송된 링크와의 호환을 위해 남겨둠.
       setClientId(params.get("inquiry") || params.get("client") || params.get("id"));
+    } else if (params.has("portal_email") && params.has("portal_code")) {
+      // 접속 코드 이메일의 "전용 페이지 바로가기" 버튼 — 코드를 직접 입력하지 않아도 자동 로그인된다.
+      setPortalAuto({ email: params.get("portal_email"), code: params.get("portal_code") });
     }
   }, []);
 
   if (route === "devform") return <DevRequestForm clientId={clientId} />;
-  return <MainFlow />;
+  return <MainFlow initialPortalEmail={portalAuto?.email} initialPortalCode={portalAuto?.code} />;
 }
 
 // ━━━━━━━━━━ MAIN FLOW ━━━━━━━━━━
-function MainFlow() {
+function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [phase, setPhase] = useState("intro");
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -423,13 +427,19 @@ function MainFlow() {
   const [catalog, setCatalog] = useState([]);
   const [catalogQuery, setCatalogQuery] = useState("");
   const [catalogCat, setCatalogCat] = useState("전체");
+  const [catalogGroup, setCatalogGroup] = useState("전체");
   const [pickedItems, setPickedItems] = useState([]);
+  // 06 기획개발의뢰서(간이형) — 선택한 품목별 상세 입력 폼과 현재 작성 중인 품목 인덱스
+  const [devForms, setDevForms] = useState([]);
+  const [devIdx, setDevIdx] = useState(0);
   // 전용 페이지 접근 코드(상담 신청 시 1회 발급) · 로그인 입력값 · 로그인 후 받아온 전용 페이지 데이터
   const [accessCode, setAccessCode] = useState("");
   const [codeEmailed, setCodeEmailed] = useState(false);
-  const [portalPhone, setPortalPhone] = useState("");
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [portalEmail, setPortalEmail] = useState("");
   const [portalCode, setPortalCode] = useState("");
   const [portalErr, setPortalErr] = useState("");
+  const [portalMsg, setPortalMsg] = useState("");
   const [portalData, setPortalData] = useState(null);
   const cRef = useRef(null);
 
@@ -610,29 +620,37 @@ function MainFlow() {
     }
   };
 
-  // ─── 05 선택한 제조 품목으로 개발의뢰서(품목별 1건) 생성 ───
-  const submitItems = async () => {
+  // ─── 05 → 06 : 선택한 품목마다 상세 입력 폼(간이형)을 준비하고 06 화면으로 이동 ───
+  // 기획 문서 흐름상 "제조 품목 선택 → 품목별 제품개발의뢰서 상세 작성 → 상담 일정"이 맞는 순서라,
+  // 05에서 바로 노션에 저장하지 않고 06에서 내용을 채운 뒤 한 번에 제출한다.
+  const goToDevDetail = () => {
     if (pickedItems.length === 0) return;
+    setDevForms(pickedItems.map(it => ({
+      itemId: it.id, productName: it.name, productType: it.category, formulation: it.form,
+      volume: "", quantity: "", targetPrice: "", targetEffect: "", ingredients: "", packaging: "", reference: "", additionalNotes: "",
+    })));
+    setDevIdx(0);
+    setPhase("devdetail");
+  };
+  const updateDevField = (idx, field, value) => {
+    setDevForms(prev => prev.map((f, i) => i === idx ? { ...f, [field]: value } : f));
+  };
+
+  // ─── 06 작성한 개발의뢰서(품목별 1건씩) 제출 ───
+  const submitDevDetails = async () => {
     setSubmitSt("loading");
     try {
       const res = await fetch("/api/devform", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inquiryId: reg?.inquiryId,
-          products: pickedItems.map(it => ({
-            productName: it.name,
-            productType: it.category,
-            formulation: it.form,
-          })),
-        }),
+        body: JSON.stringify({ inquiryId: reg?.inquiryId, products: devForms }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "서버 오류");
       setSubmitSt(null);
       setPhase("meeting");
     } catch (err) {
-      console.error("Items submit error:", err);
+      console.error("DevDetail submit error:", err);
       setSubmitSt("error");
       setTimeout(() => setSubmitSt(null), 3000);
     }
@@ -666,7 +684,7 @@ function MainFlow() {
       if (!result.success) throw new Error(result.error || "서버 오류");
       setAccessCode(result.accessCode || "");
       setCodeEmailed(!!result.emailSent);
-      setPortalPhone(form.phone);
+      setPortalEmail(form.email);
       setSubmitSt("success");
       setPhase("complete");
     } catch (err) {
@@ -676,11 +694,11 @@ function MainFlow() {
     }
   };
 
-  // ─── 전용 페이지 로그인(연락처 + 6자리 코드) ───
-  const submitPortalLogin = async () => {
+  // ─── 전용 페이지 로그인(이메일 + 6자리 코드) — 이메일 속 "바로가기" 링크의 자동 로그인도 이 함수를 탄다 ───
+  const attemptPortalLogin = async (email, code) => {
     setPortalErr("");
-    if (!portalPhone.trim() || !/^\d{6}$/.test(portalCode.trim())) {
-      setPortalErr("연락처와 6자리 코드를 정확히 입력해주세요.");
+    if (!email.trim() || !/^\d{6}$/.test(code.trim())) {
+      setPortalErr("이메일과 6자리 코드를 정확히 입력해주세요.");
       return;
     }
     setSubmitSt("loading");
@@ -688,7 +706,7 @@ function MainFlow() {
       const res = await fetch("/api/portal-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: portalPhone.trim(), code: portalCode.trim() }),
+        body: JSON.stringify({ email: email.trim(), code: code.trim() }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "인증에 실패했습니다.");
@@ -697,6 +715,43 @@ function MainFlow() {
       setPhase("portal");
     } catch (err) {
       setPortalErr(err.message);
+      setSubmitSt(null);
+    }
+  };
+  const submitPortalLogin = () => attemptPortalLogin(portalEmail, portalCode);
+
+  // 이메일 "전용 페이지 바로가기" 링크로 들어온 경우 코드를 직접 입력하지 않아도 자동 로그인한다.
+  useEffect(() => {
+    if (initialPortalEmail && initialPortalCode) {
+      setPortalEmail(initialPortalEmail);
+      setPortalCode(initialPortalCode);
+      setPhase("portal-login");
+      attemptPortalLogin(initialPortalEmail, initialPortalCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── 코드를 못 받았거나 잃어버린 경우 재발급 ───
+  const resendPortalCode = async () => {
+    setPortalErr("");
+    setPortalMsg("");
+    if (!portalEmail.trim()) {
+      setPortalErr("이메일을 먼저 입력해주세요.");
+      return;
+    }
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/portal-resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: portalEmail.trim() }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "재전송에 실패했습니다.");
+      setPortalMsg("등록된 이메일이면 새 코드를 보내드렸습니다. 메일함을 확인해주세요.");
+    } catch (err) {
+      setPortalErr(err.message);
+    } finally {
       setSubmitSt(null);
     }
   };
@@ -1161,14 +1216,22 @@ function MainFlow() {
   // 06번 화면(기획개발의뢰서 4단계 마법사 — 콘셉트 키워드 · 원료 · 용기 · 일정 등)은 아직 없어서,
   // 우선 선택한 품목별로 최소 정보(품목명·대분류·제형)만 담아 개발의뢰서를 바로 생성한다.
   if (phase === "items") {
-    const cats = ["전체", ...Array.from(new Set(catalog.map(it => it.category).filter(Boolean)))];
-    const catCount = c => c === "전체" ? catalog.length : catalog.filter(it => it.category === c).length;
     const q = catalogQuery.trim().toLowerCase();
+    const searching = q.length > 0;
+
+    // 대분류 → 제품군 → 품목 순으로 단계별로 좁혀가며 고른다(검색어를 입력하면 단계 무시하고 바로 전체에서 찾는다).
+    const cats = Array.from(new Set(catalog.map(it => it.category).filter(Boolean)));
+    const catCount = c => catalog.filter(it => it.category === c).length;
+    const groupsInCat = Array.from(new Set(catalog.filter(it => it.category === catalogCat).map(it => it.group).filter(Boolean)));
+    const groupCount = g => catalog.filter(it => it.category === catalogCat && it.group === g).length;
+
     const filtered = catalog.filter(it => {
+      if (searching) return [it.name, it.category, it.group, it.form, it.desc].some(v => (v || "").toLowerCase().includes(q));
       if (catalogCat !== "전체" && it.category !== catalogCat) return false;
-      if (!q) return true;
-      return [it.name, it.group, it.form].some(v => (v || "").toLowerCase().includes(q));
+      if (catalogGroup !== "전체" && catalogGroup !== "__all__" && it.group !== catalogGroup) return false;
+      return true;
     });
+
     const isPicked = id => pickedItems.some(p => p.id === id);
     const toggleItem = (it) => {
       if (it.status === "불가" || it.status === "중단") return;
@@ -1180,6 +1243,44 @@ function MainFlow() {
       s === "검토 필요" ? { fg: "#B0562A", bg: "#FDF1EC" } :
       { fg: "#8A8A8E", bg: "#EFEFF0" }
     );
+    const pickCat = (c) => { setCatalogCat(c); setCatalogGroup("전체"); };
+    const backTo = (level) => { if (level === "cats") { setCatalogCat("전체"); setCatalogGroup("전체"); } else if (level === "groups") setCatalogGroup("전체"); };
+
+    // 검색 중이 아닐 때: 대분류 미선택 → 대분류 목록, 대분류만 선택 → 제품군 목록, 둘 다 선택 → 품목 목록
+    const level = searching ? "items" : catalogCat === "전체" ? "cats" : catalogGroup === "전체" && groupsInCat.length > 0 ? "groups" : "items";
+
+    const ItemRow = ({ it }) => {
+      const sel = isPicked(it.id);
+      const sc = statusColor(it.status);
+      const blocked = it.status === "불가" || it.status === "중단";
+      return (
+        <button onClick={() => toggleItem(it)} disabled={blocked} style={{
+          textAlign: "left", borderRadius: 18, padding: "15px 16px", cursor: blocked ? "not-allowed" : "pointer", fontFamily: FONT,
+          display: "flex", gap: 13, alignItems: "center", transition: "border-color .2s",
+          background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+          border: sel ? `1.5px solid ${C.accent}` : "1.5px solid transparent", opacity: blocked ? 0.5 : 1,
+        }}>
+          {it.image ? (
+            <img src={it.image} alt="" style={{ width: 44, height: 44, flex: "none", borderRadius: 14, objectFit: "cover" }} />
+          ) : (
+            <span style={{ width: 44, height: 44, flex: "none", borderRadius: 14, background: "repeating-linear-gradient(135deg,#E4E4E4 0 6px,#EFEFF0 6px 12px)" }} />
+          )}
+          <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
+            </span>
+            <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[it.category, it.group, it.form].filter(Boolean).join(" · ")}</span>
+            {it.desc && <span style={{ fontSize: 12, color: "#B0B0B4", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.desc}</span>}
+          </span>
+          <span style={{
+            width: 24, height: 24, flex: "none", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, fontWeight: 800, color: sel ? "#fff" : "#C4C4C6",
+            background: sel ? C.accent : "transparent", border: sel ? "none" : "1.5px solid #E4E4E4",
+          }}>{sel ? "✓" : ""}</span>
+        </button>
+      );
+    };
 
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
@@ -1188,56 +1289,92 @@ function MainFlow() {
           <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 가능 품목</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 16px", background: "#fff", borderRadius: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
             <span style={{ fontSize: 15, color: "#B0B0B4" }}>⌕</span>
-            <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="제형 · 제품군 검색"
+            <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="품목 · 제품군 · 제형 검색"
               style={{ flex: 1, border: 0, outline: "none", fontSize: 15, fontWeight: 600, fontFamily: FONT, color: "#111", background: "transparent" }} />
-          </div>
-          <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
-            {cats.map(c => {
-              const active = catalogCat === c;
-              return (
-                <button key={c} onClick={() => setCatalogCat(c)} style={{
-                  flex: "none", height: 36, padding: "0 14px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  fontFamily: FONT, whiteSpace: "nowrap", transition: "all .18s",
-                  background: active ? "#111" : "#fff", color: active ? "#fff" : "#434343",
-                  border: active ? "1.5px solid #111" : "1.5px solid transparent",
-                }}>{c} {catCount(c)}</button>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {filtered.map(it => {
-              const sel = isPicked(it.id);
-              const sc = statusColor(it.status);
-              const blocked = it.status === "불가" || it.status === "중단";
-              return (
-                <button key={it.id} onClick={() => toggleItem(it)} disabled={blocked} style={{
-                  textAlign: "left", borderRadius: 18, padding: "15px 16px", cursor: blocked ? "not-allowed" : "pointer", fontFamily: FONT,
-                  display: "flex", gap: 13, alignItems: "center", transition: "border-color .2s",
-                  background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
-                  border: sel ? `1.5px solid ${C.accent}` : "1.5px solid transparent", opacity: blocked ? 0.5 : 1,
-                }}>
-                  <span style={{ width: 44, height: 44, flex: "none", borderRadius: 14, background: "repeating-linear-gradient(135deg,#E4E4E4 0 6px,#EFEFF0 6px 12px)" }} />
-                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
-                    </span>
-                    <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[it.category, it.group, it.form].filter(Boolean).join(" · ")}</span>
-                  </span>
-                  <span style={{
-                    width: 24, height: 24, flex: "none", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, fontWeight: 800, color: sel ? "#fff" : "#C4C4C6",
-                    background: sel ? C.accent : "transparent", border: sel ? "none" : "1.5px solid #E4E4E4",
-                  }}>{sel ? "✓" : ""}</span>
-                </button>
-              );
-            })}
-            {filtered.length === 0 && (
-              <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>
-                {catalog.length === 0 ? "품목을 불러오는 중..." : "검색 결과 없음 · 담당자 확인 요청 가능"}
-              </div>
+            {searching && (
+              <button onClick={() => setCatalogQuery("")} style={{ border: 0, background: "none", color: "#B0B0B4", fontSize: 16, cursor: "pointer", padding: 2 }}>✕</button>
             )}
           </div>
+
+          {level === "cats" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {cats.map(c => (
+                <button key={c} onClick={() => pickCat(c)} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left",
+                  borderRadius: 18, padding: "17px 18px", cursor: "pointer", fontFamily: FONT,
+                  background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: "1.5px solid transparent",
+                }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{c}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{catCount(c)}개</span>
+                    <span style={{ color: "#C4C4C6", fontSize: 16 }}>›</span>
+                  </span>
+                </button>
+              ))}
+              {cats.length === 0 && (
+                <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>품목을 불러오는 중...</div>
+              )}
+            </div>
+          )}
+
+          {level === "groups" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => backTo("cats")} style={{
+                  width: 32, height: 32, border: 0, borderRadius: 10, background: "#fff",
+                  color: "#434343", fontSize: 16, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
+                }}>‹</button>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{catalogCat}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                <button onClick={() => setCatalogGroup("__all__")} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left",
+                  borderRadius: 18, padding: "15px 18px", cursor: "pointer", fontFamily: FONT,
+                  background: "#111", border: "1.5px solid transparent",
+                }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#fff" }}>전체 제품군 보기</span>
+                  <span style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{catCount(catalogCat)}개</span>
+                </button>
+                {groupsInCat.map(g => (
+                  <button key={g} onClick={() => setCatalogGroup(g)} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left",
+                    borderRadius: 18, padding: "15px 18px", cursor: "pointer", fontFamily: FONT,
+                    background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: "1.5px solid transparent",
+                  }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>{g}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{groupCount(g)}개</span>
+                      <span style={{ color: "#C4C4C6", fontSize: 16 }}>›</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {level === "items" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {!searching && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => backTo(groupsInCat.length > 0 ? "groups" : "cats")} style={{
+                    width: 32, height: 32, border: 0, borderRadius: 10, background: "#fff",
+                    color: "#434343", fontSize: 16, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
+                  }}>‹</button>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>
+                    {catalogCat}{catalogGroup !== "__all__" && catalogGroup !== "전체" ? ` · ${catalogGroup}` : ""}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {filtered.map(it => <ItemRow key={it.id} it={it} />)}
+                {filtered.length === 0 && (
+                  <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>
+                    검색 결과 없음 · 담당자 확인 요청 가능
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ flex: "none", padding: "14px 20px", background: "#111", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
@@ -1246,11 +1383,83 @@ function MainFlow() {
               {pickedItems.length === 0 ? "품목을 선택해주세요" : pickedItems.map(p => p.name).join(", ")}
             </span>
           </div>
-          <button onClick={submitItems} disabled={pickedItems.length === 0 || submitSt === "loading"} style={{
+          <button onClick={goToDevDetail} disabled={pickedItems.length === 0} style={{
             height: 48, padding: "0 22px", border: 0, borderRadius: 16, background: C.accent, color: "#fff",
             fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, transition: "opacity .18s",
-            opacity: (pickedItems.length === 0 || submitSt === "loading") ? 0.5 : 1, flex: "none",
-          }}>{submitSt === "loading" ? "저장 중..." : `의뢰서 ${pickedItems.length}건 만들기`}</button>
+            opacity: pickedItems.length === 0 ? 0.5 : 1, flex: "none",
+          }}>{`의뢰서 ${pickedItems.length}건 작성하기`}</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ━━━━━━━━━━ PHASE: DEVDETAIL (제조사 OS 앱.dc.html · 06 기획개발의뢰서 — 간이형) ━━━━━━━━━━
+  // 원본 디자인은 콘셉트 키워드 · 지정 원료 · 용기 선택 등 화려한 4단계 마법사이지만 아직 그 UI는
+  // 없다. 우선 품목별로 실제 노션 제품개발의뢰서 속성에 매핑되는 항목만 순서대로 작성하게 하는
+  // 최소 버전이다 — "05 품목 선택 → 06 상세 작성 → 07 상담 일정" 순서를 맞추는 것이 이번 목적.
+  if (phase === "devdetail" && devForms.length > 0) {
+    const d = devForms[devIdx];
+    const isLast = devIdx === devForms.length - 1;
+    const ta = { ...uInp, minHeight: 64, resize: "vertical" };
+
+    return (
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
+        <style>{css}</style>
+        <div style={{ flex: "none", padding: "14px 20px 0" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.7 }}>기획개발의뢰서</span>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: C.accent }}>{devIdx + 1} / {devForms.length}</span>
+          </div>
+          <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 10 }}>
+            {devForms.map((f, i) => {
+              const active = i === devIdx;
+              return (
+                <button key={i} onClick={() => setDevIdx(i)} style={{
+                  flex: "none", borderRadius: 14, padding: "9px 13px", cursor: "pointer", fontFamily: FONT,
+                  textAlign: "left", background: active ? "#111" : "#fff",
+                  border: active ? "1.5px solid #111" : "1.5px solid transparent",
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: active ? "#8A8A8E" : "#B0B0B4", fontFamily: "ui-monospace, monospace" }}>DEV-{String(i + 1).padStart(2, "0")}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: active ? "#fff" : "#111", whiteSpace: "nowrap" }}>{f.productName}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "6px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={card2}>
+            <UField label="제품명 / 가칭" req>
+              <input value={d.productName} onChange={e => updateDevField(devIdx, "productName", e.target.value)} style={uInp} />
+            </UField>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <UField label="내용량"><input value={d.volume} onChange={e => updateDevField(devIdx, "volume", e.target.value)} placeholder="예: 50ml" style={uInp} /></UField>
+              <UField label="초도 희망수량"><input value={d.quantity} onChange={e => updateDevField(devIdx, "quantity", e.target.value.replace(/\D/g, ""))} placeholder="예: 3000" style={uInp} /></UField>
+            </div>
+            <UField label="목표 원가"><input value={d.targetPrice} onChange={e => updateDevField(devIdx, "targetPrice", e.target.value)} placeholder="예: 3,000원" style={uInp} /></UField>
+            <UField label="타겟 효능 · 사용감"><textarea value={d.targetEffect} onChange={e => updateDevField(devIdx, "targetEffect", e.target.value)} placeholder="예: 수분 진정, 산뜻한 마무리감" style={ta} /></UField>
+            <UField label="필수 적용 원료"><input value={d.ingredients} onChange={e => updateDevField(devIdx, "ingredients", e.target.value)} placeholder="예: 판테놀 5%" style={uInp} /></UField>
+            <UField label="포장 형태"><input value={d.packaging} onChange={e => updateDevField(devIdx, "packaging", e.target.value)} placeholder="예: 드로퍼 보틀 30ml" style={uInp} /></UField>
+            <UField label="레퍼런스 (URL)"><input value={d.reference} onChange={e => updateDevField(devIdx, "reference", e.target.value)} placeholder="https://..." style={uInp} /></UField>
+            <UField label="추가 요청사항"><textarea value={d.additionalNotes} onChange={e => updateDevField(devIdx, "additionalNotes", e.target.value)} style={ta} /></UField>
+          </div>
+        </div>
+        <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4", display: "flex", gap: 10 }}>
+          {devIdx > 0 && (
+            <button onClick={() => setDevIdx(i => i - 1)} style={{
+              height: 52, padding: "0 20px", border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff",
+              color: "#434343", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
+            }}>이전</button>
+          )}
+          <button
+            onClick={() => isLast ? submitDevDetails() : setDevIdx(i => i + 1)}
+            disabled={!d.productName.trim() || submitSt === "loading"}
+            style={{
+              flex: 1, height: 52, border: 0, borderRadius: 16, background: submitSt === "error" ? C.error : "#111",
+              color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
+              opacity: (!d.productName.trim() || submitSt === "loading") ? 0.6 : 1,
+            }}>
+            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : isLast ? `의뢰서 ${devForms.length}건 제출하고 상담 신청` : "다음 품목"}
+          </button>
         </div>
       </div>
     );
@@ -1370,8 +1579,17 @@ function MainFlow() {
               background: "#111", borderRadius: 18, padding: "22px 20px", marginBottom: 20,
               display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center",
             }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>전용 페이지 접속 코드 · 연락처와 함께 사용</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>전용 페이지 접속 코드 · 이메일과 함께 사용</span>
               <span style={{ fontSize: 34, fontWeight: 800, color: "#fff", letterSpacing: 6, fontFamily: "ui-monospace, monospace" }}>{accessCode}</span>
+              <button onClick={() => {
+                navigator.clipboard?.writeText(accessCode).then(() => {
+                  setCodeCopied(true);
+                  setTimeout(() => setCodeCopied(false), 2000);
+                }).catch(() => {});
+              }} style={{
+                background: "none", border: "1px solid #2E2E32", borderRadius: 99, padding: "5px 14px",
+                color: "#E4E4E4", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
+              }}>{codeCopied ? "복사됨 ✓" : "코드 복사"}</button>
               <span style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600 }}>
                 {codeEmailed ? "담당자 이메일로도 발송되었습니다 · 이 화면에서는 지금 한 번만 표시됩니다" : "이 코드는 지금 한 번만 표시됩니다 · 꼭 저장해주세요"}
               </span>
@@ -1446,7 +1664,7 @@ function MainFlow() {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: PORTAL LOGIN (md 문서 8장 "전용 페이지" 접근 — 연락처 + 6자리 코드) ━━━━━━━━━━
+  // ━━━━━━━━━━ PHASE: PORTAL LOGIN (md 문서 8장 "전용 페이지" 접근 — 이메일 + 6자리 코드) ━━━━━━━━━━
   if (phase === "portal-login") {
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
@@ -1454,12 +1672,12 @@ function MainFlow() {
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>전용 페이지</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>연락처와 접속 코드로 진행 상황을 확인하세요.</div>
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>이메일과 접속 코드로 진행 상황을 확인하세요.</div>
           </div>
           <div style={card2}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>연락처</div>
-              <input value={portalPhone} onChange={e => setPortalPhone(e.target.value)} placeholder="010-0000-0000" style={uInp} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>이메일</div>
+              <input type="email" value={portalEmail} onChange={e => setPortalEmail(e.target.value)} placeholder="you@company.com" style={uInp} />
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>6자리 접속 코드</div>
@@ -1467,6 +1685,11 @@ function MainFlow() {
                 style={{ ...uInp, fontFamily: "ui-monospace, monospace", letterSpacing: 4 }} />
             </div>
             {portalErr && <div style={{ fontSize: 12, color: C.error, fontWeight: 700 }}>{portalErr}</div>}
+            {portalMsg && <div style={{ fontSize: 12, color: C.success, fontWeight: 700 }}>{portalMsg}</div>}
+            <button onClick={resendPortalCode} disabled={submitSt === "loading"} style={{
+              alignSelf: "flex-start", background: "none", border: 0, padding: 0, cursor: "pointer",
+              fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: "#8A8A8E", textDecoration: "underline",
+            }}>코드를 못 받으셨나요? 재전송</button>
           </div>
         </div>
         <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4" }}>

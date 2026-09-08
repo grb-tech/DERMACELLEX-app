@@ -3,6 +3,17 @@
 
 import { DB, notionCall, cors } from './_notion.mjs';
 
+// 품목 이미지: "대표 이미지"(또는 "이미지") Files & media 속성이 있으면 그걸 쓰고,
+// 없으면 노션 페이지 자체에 설정한 커버 이미지를 대신 쓴다. 둘 다 없으면 null(placeholder 표시).
+// 노션이 주는 파일 URL은 임시 서명 URL이라, 이 API를 호출할 때마다 새로 받아오므로 만료 걱정은 없다.
+function extractImage(page, props) {
+  const filesProp = props['대표 이미지'] || props['이미지'];
+  const file = filesProp?.files?.[0];
+  if (file) return file.file?.url || file.external?.url || null;
+  if (page.cover) return page.cover.file?.url || page.cover.external?.url || null;
+  return null;
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -33,6 +44,7 @@ export default async function handler(req, res) {
         form: props['제형']?.rich_text?.map(t => t.plain_text).join('') || '',
         status: props['제조 가능 상태']?.select?.name || '',
         desc: props['간단한 제형 설명']?.rich_text?.map(t => t.plain_text).join('') || '',
+        image: extractImage(p, props),
       };
     });
 
