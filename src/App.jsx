@@ -304,7 +304,7 @@ const SECTION_WEIGHTS = {
 const TIME_SLOTS = Array.from({ length: 19 }, (_, i) => {
   const h = 9 + Math.floor(i / 2);
   const m = i % 2 === 0 ? "00" : "30";
-  return h >= 18 && m === "30" ? null : `${h}:${m}`;
+  return h >= 18 && m === "30" ? null : `${String(h).padStart(2, "0")}:${m}`;
 }).filter(Boolean);
 
 // 노션 "상담 · 미팅" DB의 '미팅 확정일'에 이미 값이 있는 슬롯(담당자가 확정한 일정)은
