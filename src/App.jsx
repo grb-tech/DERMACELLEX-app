@@ -796,6 +796,11 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       setErrors({ meetingDate1: "필수" });
       return;
     }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (form.meetingDate1 < todayStr || (form.meetingDate2 && form.meetingDate2 < todayStr)) {
+      setErrors({ meetingDate1: "지난 날짜는 선택할 수 없습니다" });
+      return;
+    }
     if (isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1) || isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2)) {
       setErrors({ meetingDate1: "이미 예약된 시간입니다" });
       return;
@@ -1641,6 +1646,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   if (phase === "meeting") {
     const slot1Booked = isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1);
     const slot2Booked = isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2);
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     const timeSelect = (dateVal, timeVal, onChange) => (
       <select value={timeVal || ""} onChange={e => onChange(e.target.value)} style={uInp}>
@@ -1672,7 +1678,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 1 (필수)</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input type="date" value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
+                  <input type="date" min={todayStr} value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
                     style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
                   {timeSelect(form.meetingDate1, form.meetingTime1, v => setField("meetingTime1", v))}
                 </div>
@@ -1681,7 +1687,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 2 (선택)</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input type="date" value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
+                  <input type="date" min={todayStr} value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
                   {timeSelect(form.meetingDate2, form.meetingTime2, v => setField("meetingTime2", v))}
                 </div>
                 {slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
@@ -1886,7 +1892,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
     let hero = { label: "다음 행동", title: "담당자 배정 대기", sub: "곧 담당자가 배정되어 안내드립니다.", cta: null };
     if (meeting?.confirmed) {
-      hero = { label: "확정된 일정", title: "1차 상담", sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: "Zoom 접속", href: meeting.zoomLink } : null };
+      hero = { label: "확정된 일정", title: "제조 상담", sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: "Zoom 접속", href: meeting.zoomLink } : null };
     } else if (meeting) {
       hero = { label: "다음 행동", title: "상담 일정 확정 대기", sub: "담당자가 확인 후 일정을 확정해 안내드립니다.", cta: null };
     }
@@ -1965,7 +1971,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 800, flex: "none" }}>Z</span>
               <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
                 <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>
-                  {meeting.confirmed ? `1차 상담 · ${fmt(meeting.confirmed)}` : "1차 상담 · 일정 조율 중"}
+                  {meeting.confirmed ? `제조 상담 · ${fmt(meeting.confirmed)}` : "제조 상담 · 일정 조율 중"}
                 </span>
                 <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? "Zoom 링크 확정" : meeting.status || "-"}</span>
               </span>
