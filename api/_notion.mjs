@@ -39,6 +39,7 @@ export function plain(prop, kind) {
   if (kind === 'status') return prop.status?.name || '';
   if (kind === 'date') return prop.date?.start || '';
   if (kind === 'url') return prop.url || '';
+  if (kind === 'multi_select') return (prop.multi_select || []).map(o => o.name);
   return '';
 }
 

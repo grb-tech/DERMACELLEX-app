@@ -7,6 +7,57 @@
 import crypto from 'crypto';
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
 
+// 제품개발의뢰서 상세를 고객이 직접 확인할 수 있도록, 프론트(App.jsx의 DEV_FIELD_GROUPS)와
+// 같은 키로 전체 속성을 돌려준다. 값이 없는 필드는 프론트에서 알아서 숨긴다.
+function mapProductDetail(p) {
+  const pr = p.properties || {};
+  return {
+    name: plain(pr['제품명/가칭'], 'title'),
+    status: plain(pr['상태'], 'status'),
+    productName: plain(pr['제품명/가칭'], 'title'),
+    volume: plain(pr['내용량'], 'text'),
+    quantity: plain(pr['초도희망수량'], 'select'),
+    targetPrice: plain(pr['목표원가'], 'text'),
+    devType: plain(pr['개발유형'], 'select'),
+    composition: plain(pr['제품구성'], 'select'),
+    mainEffect: plain(pr['메인효능'], 'select'),
+    subEffect: plain(pr['서브효능'], 'multi_select'),
+    targetEffect: plain(pr['타겟효능서술'], 'text'),
+    formulation: plain(pr['타겟사용감/제형'], 'text'),
+    requiredFeel: plain(pr['필수사용감'], 'text'),
+    gender: plain(pr['타겟성별'], 'select'),
+    ageGroup: plain(pr['타겟연령층'], 'select'),
+    targetSkin: plain(pr['타겟피부'], 'text'),
+    targetSkinDesc: plain(pr['타겟피부서술'], 'text'),
+    finish: plain(pr['마무리감'], 'select'),
+    viscosity: plain(pr['점도텍스처'], 'select'),
+    color: plain(pr['내용물색상'], 'select'),
+    transparency: plain(pr['내용물투명도'], 'select'),
+    scent: plain(pr['향'], 'multi_select'),
+    ph: plain(pr['희망pH'], 'select'),
+    particle: plain(pr['입자고형소재'], 'select'),
+    particleDetail: plain(pr['입자고형상세'], 'text'),
+    ingredients: plain(pr['필수적용원료'], 'text'),
+    excludeIngredients: plain(pr['제외희망원료'], 'text'),
+    functional: plain(pr['기능성화장품'], 'select'),
+    safety: plain(pr['성분안전성기준'], 'multi_select'),
+    packaging: plain(pr['포장형태'], 'text'),
+    spec: plain(pr['규격'], 'text'),
+    suppliedMaterial: plain(pr['사급부자재'], 'text'),
+    turnkeyMaterial: plain(pr['턴키부자재'], 'text'),
+    otherMaterialCond: plain(pr['기타부자재조건'], 'text'),
+    targetContainerUrl: plain(pr['타겟용기URL'], 'url'),
+    reference: plain(pr['타겟제품/샘플'], 'url'),
+    countries: plain(pr['판매예정국가'], 'multi_select'),
+    exportRegs: plain(pr['수출규제기준'], 'multi_select'),
+    nmpaEffect: plain(pr['NMPA효능'], 'text'),
+    certs: plain(pr['인증기준'], 'multi_select'),
+    countryLimits: plain(pr['국가별제한사항'], 'text'),
+    launchDate: plain(pr['희망런칭일정'], 'date'),
+    additionalNotes: plain(pr['추가요청사항'], 'text'),
+  };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -80,10 +131,17 @@ export default async function handler(req, res) {
 
     const latestMeeting = (meetings.results || [])[0];
 
+    // '제조 문의명'은 "[INQ-xxx] 회사명 | 제조개발 문의" 형태라 고유 ID · 회사명과 겹친다 —
+    // 둘 다 이미 화면에 따로 나오니, 마지막 " | " 뒤쪽(문의 유형)만 표시용으로 뽑아 쓴다.
+    const rawInquiryName = plain(inquiryPage.properties?.['제조 문의명'], 'title');
+    const inquiryDisplayName = rawInquiryName.includes('|')
+      ? rawInquiryName.split('|').pop().trim()
+      : rawInquiryName;
+
     return res.status(200).json({
       success: true,
       inquiry: {
-        name: plain(inquiryPage.properties?.['제조 문의명'], 'title'),
+        name: inquiryDisplayName,
         uid: plain(inquiryPage.properties?.['고유 ID'], 'text'),
         status: plain(inquiryPage.properties?.['상태'], 'status'),
       },
@@ -100,10 +158,7 @@ export default async function handler(req, res) {
         confirmed: plain(latestMeeting.properties?.['미팅 확정일'], 'date'),
         zoomLink: plain(latestMeeting.properties?.['ZOOM Link'], 'url'),
       } : null,
-      products: (devreqs.results || []).map(p => ({
-        name: plain(p.properties?.['제품명/가칭'], 'title'),
-        status: plain(p.properties?.['상태'], 'status'),
-      })),
+      products: (devreqs.results || []).map(mapProductDetail),
     });
   } catch (err) {
     console.error('Portal Login Error:', err);

@@ -429,6 +429,7 @@ const DEV_FIELD_GROUPS = [
     ],
   },
 ];
+const ALL_DEV_FIELDS = DEV_FIELD_GROUPS.flatMap(g => g.fields);
 
 function Chip({ label, sel, onClick }) {
   return (
@@ -567,6 +568,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [portalMsg, setPortalMsg] = useState("");
   const [portalData, setPortalData] = useState(null);
   const [portalSynced, setPortalSynced] = useState(null);
+  const [portalTab, setPortalTab] = useState("home");
+  const [expandedProduct, setExpandedProduct] = useState(null);
   const cRef = useRef(null);
 
   useEffect(() => {
@@ -1879,7 +1882,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: PORTAL (제조사 OS 앱.dc.html · 09 대시보드 기준) ━━━━━━━━━━
+  // ━━━━━━━━━━ PHASE: PORTAL (제조사 OS 앱.dc.html · 09 대시보드 기준, 하단 탭 포함) ━━━━━━━━━━
   // 가견적 · 계약 · 제조 프로젝트(디자인 10~12번 화면)는 아직 DB 연동을 안 붙여서 "아직 없음"
   // 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 · 등급 · 위험
   // 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
@@ -1889,6 +1892,19 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     const STAGES = ["접수", "상담", "견적", "계약", "프로젝트 전환"];
     const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
     const openProducts = products.filter(p => p.status && p.status !== "완료").length;
+    const TABS = [
+      { key: "home", icon: "🏠", label: "홈" },
+      { key: "inquiry", icon: "📄", label: "문의" },
+      { key: "estimate", icon: "💰", label: "견적" },
+      { key: "progress", icon: "📈", label: "진행" },
+      { key: "alerts", icon: "🔔", label: "알림" },
+    ];
+    const fmtFieldValue = (f, v) => {
+      if (Array.isArray(v)) return v.join(", ");
+      if (f.type === "date" && v) return new Date(v).toLocaleDateString("ko");
+      return v || "";
+    };
+    const placeholder = { background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" };
 
     let hero = { label: "다음 행동", title: "담당자 배정 대기", sub: "곧 담당자가 배정되어 안내드립니다.", cta: null };
     if (meeting?.confirmed) {
@@ -1915,87 +1931,154 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             </button>
           </div>
 
-          <div style={{
-            borderRadius: 24, padding: 20, background: "linear-gradient(150deg,#EA5C2A,#C33F14)", color: "#fff",
-            boxShadow: "0 18px 34px -20px rgba(234,92,42,.9)", display: "flex", flexDirection: "column", gap: 4,
-          }}>
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, opacity: 0.85 }}>{hero.label}</span>
-            <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.6, marginTop: 8 }}>{hero.title}</span>
-            <span style={{ fontSize: 13.5, opacity: 0.9, fontWeight: 600, marginTop: 2 }}>{hero.sub}</span>
-            {hero.cta && (
-              <a href={hero.cta.href} target="_blank" rel="noreferrer" style={{
-                marginTop: 14, height: 50, border: 0, borderRadius: 15, background: "#fff", color: "#C33F14",
-                fontSize: 15, fontWeight: 800, fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
-              }}>{hero.cta.label}</a>
-            )}
-          </div>
-
-          <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E" }}>{inquiry.uid}</span>}
-              <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1 }}>{inquiry.name || "제조개발 문의"}</span>
-            </div>
-            <div style={{ display: "flex", gap: 0 }}>
-              {STAGES.map((s, i) => (
-                <span key={s} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: "100%", height: 3, borderRadius: 99, background: i <= stageIdx ? "#111" : "#E4E4E4" }} />
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: i <= stageIdx ? "#111" : "#B0B0B4" }}>{s}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>기획개발의뢰서</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
-                {products.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
-              </div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: openProducts > 0 ? C.accent : "#8A8A8E", marginTop: 4 }}>
-                {openProducts > 0 ? `진행 중 ${openProducts}건` : products.length > 0 ? "전체 완료" : "작성된 의뢰서 없음"}
-              </div>
-            </div>
-            <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>가견적</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
-            </div>
-          </div>
-
-          <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
-          </div>
-
-          {meeting && (
-            <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", alignItems: "center", gap: 13 }}>
-              <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 800, flex: "none" }}>Z</span>
-              <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>
-                  {meeting.confirmed ? `제조 상담 · ${fmt(meeting.confirmed)}` : "제조 상담 · 일정 조율 중"}
-                </span>
-                <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? "Zoom 링크 확정" : meeting.status || "-"}</span>
-              </span>
-              {meeting.zoomLink && (
-                <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 800, color: C.accent, textDecoration: "none" }}>입장</a>
+          {portalTab === "home" && (<>
+            <div style={{
+              borderRadius: 24, padding: 20, background: "linear-gradient(150deg,#EA5C2A,#C33F14)", color: "#fff",
+              boxShadow: "0 18px 34px -20px rgba(234,92,42,.9)", display: "flex", flexDirection: "column", gap: 4,
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, opacity: 0.85 }}>{hero.label}</span>
+              <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.6, marginTop: 8 }}>{hero.title}</span>
+              <span style={{ fontSize: 13.5, opacity: 0.9, fontWeight: 600, marginTop: 2 }}>{hero.sub}</span>
+              {hero.cta && (
+                <a href={hero.cta.href} target="_blank" rel="noreferrer" style={{
+                  marginTop: 14, height: 50, border: 0, borderRadius: 15, background: "#fff", color: "#C33F14",
+                  fontSize: 15, fontWeight: 800, fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+                }}>{hero.cta.label}</a>
               )}
             </div>
-          )}
 
-          {products.length > 0 && (
-            <div style={card2}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>제품개발의뢰서 목록</div>
-              {products.map((p, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+            <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, minWidth: 0 }}>
+                {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{inquiry.uid}</span>}
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || "제조개발 문의"}</span>
+              </div>
+              <div style={{ display: "flex", gap: 0 }}>
+                {STAGES.map((s, i) => (
+                  <span key={s} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: "100%", height: 3, borderRadius: 99, background: i <= stageIdx ? "#111" : "#E4E4E4" }} />
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: i <= stageIdx ? "#111" : "#B0B0B4" }}>{s}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <button onClick={() => setPortalTab("inquiry")} style={{ textAlign: "left", background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: 0, cursor: "pointer", fontFamily: FONT }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>기획개발의뢰서</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
+                  {products.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
                 </div>
-              ))}
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: openProducts > 0 ? C.accent : "#8A8A8E", marginTop: 4 }}>
+                  {openProducts > 0 ? `진행 중 ${openProducts}건` : products.length > 0 ? "전체 완료" : "작성된 의뢰서 없음"}
+                </div>
+              </button>
+              <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>가견적</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
+              </div>
+            </div>
+
+            <div style={placeholder}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
+            </div>
+
+            {meeting && (
+              <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", alignItems: "center", gap: 13 }}>
+                <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 800, flex: "none" }}>Z</span>
+                <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>
+                    {meeting.confirmed ? `제조 상담 · ${fmt(meeting.confirmed)}` : "제조 상담 · 일정 조율 중"}
+                  </span>
+                  <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? "Zoom 링크 확정" : meeting.status || "-"}</span>
+                </span>
+                {meeting.zoomLink && (
+                  <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 800, color: C.accent, textDecoration: "none" }}>입장</a>
+                )}
+              </div>
+            )}
+          </>)}
+
+          {portalTab === "inquiry" && (<>
+            <div style={placeholder}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{inquiry.uid}</span>}
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || "제조개발 문의"}</span>
+              </div>
+              <div style={{ fontSize: 13, color: C.accent, fontWeight: 700, marginTop: 6 }}>현재 상태 · {inquiry.status || "-"}</div>
+            </div>
+
+            <div style={card2}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>내가 작성한 제품개발의뢰서</div>
+              {products.length === 0 && <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>작성된 개발의뢰서가 없습니다.</div>}
+              {products.map((p, i) => {
+                const isOpen = expandedProduct === i;
+                const filled = ALL_DEV_FIELDS.filter(f => f.key !== "productName" && p[f.key] && (!Array.isArray(p[f.key]) || p[f.key].length));
+                return (
+                  <div key={i} style={{ borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+                    <button onClick={() => setExpandedProduct(isOpen ? null : i)} style={{
+                      width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                      padding: "12px 0", border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                    }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+                        <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingBottom: 16 }}>
+                        {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>작성된 상세 항목이 없습니다.</div>}
+                        {filled.map(f => (
+                          <div key={f.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600, flex: "none" }}>{f.label}</span>
+                            <span style={{ color: "#111", fontWeight: 700, textAlign: "right" }}>{fmtFieldValue(f, p[f.key])}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>)}
+
+          {portalTab === "estimate" && (
+            <div style={placeholder}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>가견적</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 생성된 가견적이 없습니다. 담당자 검토 후 이곳에 공개됩니다.</div>
+            </div>
+          )}
+          {portalTab === "progress" && (
+            <div style={placeholder}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>진행 상황</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 제품별 진행 타임라인이 여기에 표시됩니다.</div>
+            </div>
+          )}
+          {portalTab === "alerts" && (
+            <div style={placeholder}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>알림</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 알림이 없습니다.</div>
             </div>
           )}
 
           <div style={{ textAlign: "center", fontSize: 11.5, color: "#B0B0B4", fontWeight: 600, marginTop: 4 }}>
             {portalSynced ? `마지막 업데이트 ${portalSynced.toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" })} · 15초마다 자동 새로고침` : ""}
           </div>
+        </div>
+        <div style={{ flex: "none", height: 74, background: "#fff", borderTop: "1px solid #E9E9EA", display: "flex", alignItems: "flex-start", padding: "10px 8px 0" }}>
+          {TABS.map(t => {
+            const active = portalTab === t.key;
+            return (
+              <button key={t.key} onClick={() => setPortalTab(t.key)} style={{
+                flex: 1, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "4px 0",
+              }}>
+                <span style={{ fontSize: 17 }}>{t.icon}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: active ? "#111" : "#B0B0B4" }}>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
