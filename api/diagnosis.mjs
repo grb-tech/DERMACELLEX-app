@@ -2,7 +2,7 @@
 // 고객에게는 점수·등급을 절대 보여주지 않는다 — 이 응답은 화면에 그대로 노출하지 말 것
 // (기획서 4장 "고객 진단으로 계산된 서비스 적합도는 내부 후보값" 원칙).
 
-import { DB, createPage, notionCall, cors, text, title, select } from './_notion.mjs';
+import { DB, createPage, notionCall, cors, text, title, select, multiSelect } from './_notion.mjs';
 
 export default async function handler(req, res) {
   cors(res);
@@ -25,6 +25,15 @@ export default async function handler(req, res) {
     const totalScore = Math.round(data.totalScore || 0);
     const grade = totalScore >= 90 ? 'S' : totalScore >= 80 ? 'A' : totalScore >= 70 ? 'B'
       : totalScore >= 60 ? 'C' : totalScore >= 50 ? 'D' : totalScore >= 40 ? 'E' : 'F';
+
+    // 위험 플래그 — 담당자 내부 검토용. 명시된 계산식이 없어 준비도가 낮음을 시사하는
+    // 신호들을 모아 구성한다. 고객 화면에는 절대 노출하지 않는다.
+    const riskFlags = [];
+    if (totalScore < 40) riskFlags.push('준비도 낮음');
+    if (data.hasTrademark === '미보유') riskFlags.push('상표 미보유');
+    if (data.hasLicense === '미등록') riskFlags.push('책임판매업 미등록');
+    if (mismatch) riskFlags.push('희망서비스 불일치');
+    if ((data.questions || []).some(q => q.isKey && Number(q.score) === 0)) riskFlags.push('핵심 역량 부족');
 
     const questions = data.questions || [];
     const scoreChildren = [
@@ -68,12 +77,17 @@ export default async function handler(req, res) {
       '거래처명': { relation: [{ id: clientId }] },
       '총점': { number: totalScore },
       '고객등급': select(grade),
-      // V2 스키마는 섹션이 5개가 아니라 4개(사업·브랜드/생산·발주/일정 실행/판매·유통) + 예산·조직으로 재편됨.
-      // 기존 20문항의 섹션2(제품·생산)는 대응 항목이 없어 개별 매핑하지 않음 — 총점에는 이미 반영되어 있음.
+      // 20문항 5개 섹션(사업·브랜드/제품·생산/생산·발주/프로젝트 실행/판매·협업)을
+      // 노션의 5개 점수 속성에 1:1로 매핑한다. "일정 실행"은 섹션2(제품·생산: 출시 순서·일정
+      // 문항 포함)에, "예산·조직"은 섹션4(프로젝트 실행: 예산·조직·의사결정 문항)에 대응시켰다.
       '사업 · 브랜드 점수': { number: Math.round(sc[1] || 0) },
+      '일정 실행 점수': { number: Math.round(sc[2] || 0) },
       '생산 · 발주 점수': { number: Math.round(sc[3] || 0) },
-      '일정 실행 점수': { number: Math.round(sc[4] || 0) },
+      '예산 · 조직 점수': { number: Math.round(sc[4] || 0) },
       '판매 · 유통 점수': { number: Math.round(sc[5] || 0) },
+      // 프로젝트 준비도: 별도 산식이 확정되기 전까지는 총점을 그대로 반영한다.
+      '프로젝트 준비도': { number: totalScore },
+      '위험 플래그': multiSelect(riskFlags),
       'OEM적합도': { number: svcVotes.OEM || 0 },
       'ODM적합도': { number: svcVotes.ODM || 0 },
       'OCM적합도': { number: svcVotes.OCM || 0 },

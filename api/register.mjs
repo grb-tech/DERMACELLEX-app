@@ -46,6 +46,8 @@ export default async function handler(req, res) {
     });
 
     // ─── 3. 제조 문의 관리 (문의 허브 — 이후 진단·의뢰서·상담이 여기에 연결됨) ───
+    // 제조사V2의 모든 DB는 "제조 의뢰 거래처"와 직접 관계를 맺어야 하므로, 담당자를 거쳐가는
+    // 간접 연결과 별개로 거래처 relation도 항상 함께 채운다.
     const inquiryUid = 'INQ-' + Date.now().toString(36).toUpperCase();
     const inquiryPage = await createPage(TOKEN, DB.INQUIRY, {
       '제조 문의명': title(`[${inquiryUid}] ${c.businessName} | 제조개발 문의`),
@@ -54,6 +56,7 @@ export default async function handler(req, res) {
       '문의유형': select('신규개발'),
       '상태': { status: { name: '접수' } },
       '고객 담당자': { relation: [{ id: contactPage.id }] },
+      '제조 의뢰 거래처': { relation: [{ id: clientPage.id }] },
     });
 
     return res.status(200).json({

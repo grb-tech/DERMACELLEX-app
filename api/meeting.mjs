@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (!TOKEN) return res.status(500).json({ success: false, error: 'NOTION_TOKEN not set' });
 
   try {
-    const { inquiryId, contactId, businessName, meetingDate1, meetingTime1, meetingDate2, meetingTime2 } = req.body;
+    const { inquiryId, contactId, clientId, businessName, meetingDate1, meetingTime1, meetingDate2, meetingTime2 } = req.body;
     if (!inquiryId || !contactId) {
       return res.status(400).json({ success: false, error: 'inquiryId · contactId가 필요합니다. 먼저 /api/register를 호출해주세요.' });
     }
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       '사전확인사항': text(meetDt2Label ? `2차 희망 일정: ${meetDt2Label}` : ''),
       '고객 담당자': { relation: [{ id: contactId }] },
       '제조 문의 관리': { relation: [{ id: inquiryId }] },
+      ...(clientId ? { '제조 의뢰 거래처': { relation: [{ id: clientId }] } } : {}),
     });
 
     return res.status(200).json({ success: true, pageId: page.id });

@@ -12,7 +12,7 @@
 //   국가별제한사항, 제외희망원료, 기능성화장품, 개발유형, 제품구성, 규격, 사급부자재, 턴키부자재,
 //   기타부자재조건, 타겟피부, 타겟피부서술, 타겟용기URL, NMPA효능, 희망런칭일정
 
-import { DB, createPage, cors, text, title, select, url, quantityToBucket } from './_notion.mjs';
+import { DB, createPage, notionCall, cors, text, title, select, url, quantityToBucket } from './_notion.mjs';
 
 export default async function handler(req, res) {
   cors(res);
@@ -33,6 +33,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: '제품 정보가 없습니다.' });
     }
 
+    // 제조사V2의 모든 DB는 "제조 의뢰 거래처"와 직접 관계를 맺어야 하므로, 문의 페이지에
+    // 이미 연결된 거래처를 그대로 가져와 의뢰서에도 함께 연결한다.
+    let linkedClientId = null;
+    try {
+      const inquiryPage = await notionCall(TOKEN, 'GET', `/pages/${linkedInquiryId}`);
+      linkedClientId = inquiryPage.properties?.['제조 의뢰 거래처']?.relation?.[0]?.id || null;
+    } catch (e) {
+      console.error('거래처 조회 실패:', e.message);
+    }
+
     const createdPages = [];
 
     for (const p of products) {
@@ -40,6 +50,7 @@ export default async function handler(req, res) {
         '제품명/가칭': title(p.productName),
         '제조 문의 관리': { relation: [{ id: linkedInquiryId }] },
         '상태': { status: { name: '시작 전' } },
+        ...(linkedClientId ? { '제조 의뢰 거래처': { relation: [{ id: linkedClientId }] } } : {}),
       };
 
       if (p.productType) properties['제품카테고리'] = text(p.productType);

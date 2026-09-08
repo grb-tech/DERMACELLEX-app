@@ -6,7 +6,6 @@ const C = {
   border: "#E4E4E4", borderLight: "#ECECEC",
   text: "#1A1A1A", textSub: "#6B6B6B", textMuted: "#9E9E9E",
   primary: "#434343", accent: "#EA5C2A", accentLight: "#FFF0EB", accentDark: "#C94A1E",
-  oem: "#EA5C2A", odm: "#434343", ocm: "#2C7BE5", obm: "#7C3AED",
   success: "#10B981", error: "#EF4444", white: "#FFFFFF", black: "#000000",
   disabled: "#D1D5DB", disabledBg: "#F3F4F6",
   gradStart: "#EA5C2A", gradEnd: "#FF8A5C",
@@ -16,34 +15,39 @@ const FONT = "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, s
 const FONT_URL = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
 
 // ━━━━━━━━━━ SERVICES ━━━━━━━━━━
+// 제조사 OS 앱.dc.html 04번 화면 스크립트의 SVC 상수 그대로 사용
 const SVC = {
   OEM: {
-    code: "OEM", full: "Original Equipment Manufacturing", color: C.oem, icon: "🏭",
-    one: "제공된 처방 기반 충진·포장 생산",
-    desc: "고객이 제공한 벌크 또는 자사 벌크를 충진·포장하여 완제품으로 제공",
-    req: "03류 상표 + 책임판매업 필수",
-    fit: "자체 처방을 보유한 제조사·브랜드사",
+    code: "OEM", full: "Original Equipment Manufacturing",
+    head: "기획은 준비됐나요?\n이제 제품으로 만들 차례입니다.",
+    desc: "확정된 제품 기획과 기준을 바탕으로 생산부터 충진 · 포장까지 완제품으로 구현합니다.",
+    cust: "확정된 제품기획, 처방 · 벌크 또는 생산 기준, 부자재 기준",
+    hq: "합의 범위의 생산 · 충진 · 포장. 처방 제공 또는 부자재 소싱 범위는 계약에서 확정",
+    req: "03류 상표 + 화장품책임판매업 등록 필수",
   },
   ODM: {
-    code: "ODM", full: "Original Development Manufacturing", color: C.odm, icon: "🔬",
-    one: "제품 기획·개발·생산 토탈 서비스",
-    desc: "고객 브랜드로 제품을 기획·개발·생산하는 토탈 개발 서비스",
-    req: "03류 상표 + 책임판매업 필수",
-    fit: "상표와 브랜드 가이드를 보유한 브랜드사",
+    code: "ODM", full: "Original Design Manufacturing",
+    head: "원하는 제품만 알려주세요.\n개발부터 생산까지 함께합니다.",
+    desc: "제품의 방향을 바탕으로 기획 · 처방 개발부터 부자재 소싱과 생산까지 연결합니다.",
+    cust: "제품개발의뢰서, 목표 제품 · 수량 · 일정 · 예산",
+    hq: "제품기획 지원, 큐카드 스튜디오 · 상세페이지 기획, R&D 처방, 기존 · 신규 · 고객 소싱 부자재 핸들링",
+    req: "03류 상표 보유 또는 출원 예정",
   },
   OCM: {
-    code: "OCM", full: "Original Concept Management", color: C.ocm, icon: "🎨",
-    one: "컨셉 기획부터 생산까지 일괄 관리",
-    desc: "컨셉 기획부터 디자인, 개발, 생산까지 일괄 관리하는 서비스",
+    code: "OCM", full: "Original Concept Management",
+    head: "제품만 만드는 것이 아니라,\n보이는 모습까지 완성합니다.",
+    desc: "제품 기획과 처방 개발부터 패키지 · 콘텐츠 디자인까지 시장에 선보이기 위한 제품을 완성합니다.",
+    cust: "제품개발의뢰서, 제품 콘셉트 · 디자인 · 스토리보드 기초자료",
+    hq: "ODM 범위와 함께 라벨 · 단상자 · 용기 적용 · 패키지 시안 · 상세페이지 · 브로슈어 · 카탈로그 등 디자인 업무",
     req: "제한 없음",
-    fit: "브랜드 방향은 있으나 구체화가 필요한 업체",
   },
   OBM: {
-    code: "OBM", full: "Original Brand Management", color: C.obm, icon: "👑",
-    one: "브랜드 생성부터 전체 운영 관리",
-    desc: "브랜드 생성부터 전략, 제품, 마케팅, 운영까지 지속적 성장 관리",
+    code: "OBM", full: "Original Brand Manufacturing",
+    head: "제품을 넘어,\n브랜드를 만듭니다.",
+    desc: "브랜드 전략과 아이덴티티부터 제품 포트폴리오, 디자인과 마케팅 방향까지 함께 설계합니다.",
+    cust: "제품개발의뢰서, 브랜드개발의뢰서, 사업 목표와 시장 · 타깃 자료",
+    hq: "R&D · 부자재 소싱과 함께 BI · CI · 브랜드 가이드 · 컬러 · 아이덴티티 · 홈페이지 · SNS 방향, 패키지 · 콘텐츠 디자인, 브랜드 매니지먼트",
     req: "제한 없음",
-    fit: "화장품 브랜드를 처음 시작하려는 회사",
   },
 };
 
@@ -296,6 +300,28 @@ const SECTION_WEIGHTS = {
   5: { maxRaw: 24, scaled: 15, label: "판매·협업", guide: "출시 일정과 판매 채널을 확인합니다" },
 };
 
+// 07 상담 일정 화면 — 다음 영업일 중 4개 슬롯을 골라 보여준다 (제조사 OS 앱.dc.html 기준)
+const DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
+function upcomingSlots(count = 4) {
+  const times = ["14:00", "10:30", "15:30", "11:00"];
+  const slots = [];
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  while (slots.length < count) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) {
+      slots.push({
+        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+        time: times[slots.length % times.length],
+        dow: DOW_KO[dow],
+        day: d.getDate(),
+      });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return slots;
+}
+
 const COUNTRIES = [
   "대한민국", "미국", "일본", "중국", "베트남", "태국", "인도네시아",
   "말레이시아", "필리핀", "싱가포르", "호주", "캐나다", "영국", "독일",
@@ -395,6 +421,7 @@ function MainFlow() {
   const [submitSt, setSubmitSt] = useState(null);
   // 02 고객 정보 등록 시 노션에 만들어지는 거래처 · 담당자 · 제조 문의 ID (이후 진단·미팅이 여기에 연결됨)
   const [reg, setReg] = useState(null);
+  const [showManualDate, setShowManualDate] = useState(false);
   const cRef = useRef(null);
 
   // ─── Scoring ───
@@ -436,20 +463,26 @@ function MainFlow() {
   const scrollTop = () => cRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   useEffect(() => { scrollTop(); }, [phase, qIdx]);
 
-  // 답을 고르기만 하고, 다음으로 넘어가는 건 하단 "다음" 버튼으로 명시적으로 한다
-  // (제조사 OS 앱.dc.html 03번 화면 기준 — 자동 넘김 없음)
-  const pickAnswer = (qi, oi) => {
-    setAnswers(prev => ({ ...prev, [qi]: oi }));
-  };
-
-  const nextQuestion = () => {
-    if (!answers.hasOwnProperty(qIdx)) return;
+  // 답을 고르면 바로 다음 문항으로 넘어간다 (사용자 피드백 반영 — "다음" 버튼은
+  // 이미 답한 문항을 다시 검토할 때만 쓴다).
+  const goToNextQuestion = () => {
     if (qIdx < QUESTIONS.length - 1) {
       setAnim(true);
       setTimeout(() => { setQIdx(i => i + 1); setAnim(false); }, 200);
     } else {
       setPhase("result");
     }
+  };
+
+  const pickAnswer = (qi, oi) => {
+    const wasAnswered = answers.hasOwnProperty(qi);
+    setAnswers(prev => ({ ...prev, [qi]: oi }));
+    if (!wasAnswered) setTimeout(goToNextQuestion, 320);
+  };
+
+  const nextQuestion = () => {
+    if (!answers.hasOwnProperty(qIdx)) return;
+    goToNextQuestion();
   };
 
   const goBackQuiz = () => {
@@ -520,6 +553,7 @@ function MainFlow() {
       question: q.question,
       selectedText: answers[i] !== undefined ? q.options[answers[i]].text : '',
       score: answers[i] !== undefined ? q.options[answers[i]].score : 0,
+      isKey: !!q.isKey,
     }));
     try {
       const res = await fetch("/api/diagnosis", {
@@ -537,6 +571,8 @@ function MainFlow() {
           recommendedService: sc.recommended,
           selectedService: chosen,
           willWriteDoc,
+          hasTrademark: form.hasTrademark,
+          hasLicense: form.hasLicense,
         }),
       });
       const result = await res.json();
@@ -565,6 +601,7 @@ function MainFlow() {
         body: JSON.stringify({
           inquiryId: reg?.inquiryId,
           contactId: reg?.contactId,
+          clientId: reg?.clientId,
           businessName: form.businessName,
           meetingDate1: form.meetingDate1, meetingTime1: form.meetingTime1,
           meetingDate2: form.meetingDate2, meetingTime2: form.meetingTime2,
@@ -788,92 +825,129 @@ function MainFlow() {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: RESULT ━━━━━━━━━━
+  // ━━━━━━━━━━ PHASE: RESULT (제조사 OS 앱.dc.html · 04 진단 결과 기준) ━━━━━━━━━━
   if (phase === "result" && scoring) {
+    const best = SVC[recommended];
+    const fillPct = Math.round((Object.keys(answers).length / QUESTIONS.length) * 100);
+
     return (
-      <div style={wrap}>
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
-        <div style={hdr}>
-          <button onClick={() => { setPhase("quiz"); setQIdx(QUESTIONS.length - 1); }} style={backBtn}>←</button>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.accent }}>진단 결과</div>
-          <div style={{ width: 32 }} />
-        </div>
-        <div ref={cRef} style={{ ...body, padding: "24px 20px 140px" }}>
-          {/* Hero Card */}
-          <div style={{
-            background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
-            borderRadius: 20, padding: "32px 24px", marginBottom: 20,
-            color: C.white, textAlign: "center",
-            boxShadow: `0 12px 40px ${C.accent}30`,
-          }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{SVC[recommended].icon}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.8, letterSpacing: 2, marginBottom: 8 }}>추천 서비스</div>
-            <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px", letterSpacing: -1 }}>{recommended}</h2>
-            <p style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.6 }}>{SVC[recommended].one}</p>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto" }}>
+          {/* 다크 히어로 — 추천 서비스 (내부 진단 점수는 표시하지 않음, 서비스명만 안내) */}
+          <div style={{ background: "#111", padding: "20px 24px 34px", color: "#fff" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <button onClick={() => { setPhase("quiz"); setQIdx(QUESTIONS.length - 1); }} style={{
+                width: 32, height: 32, border: 0, borderRadius: 10, background: "rgba(255,255,255,.1)",
+                color: "#fff", fontSize: 16, cursor: "pointer", fontFamily: FONT,
+              }}>←</button>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#9A9A9E" }}>맞춤 진단 결과 · 작성률 {fillPct}%</div>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", color: C.accent, marginBottom: 10 }}>추천 서비스</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 60, fontWeight: 800, lineHeight: 0.9, letterSpacing: -3 }}>{recommended}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", paddingBottom: 8 }}>{best.full}</div>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.4, letterSpacing: -0.6, color: "#fff", marginTop: 16, whiteSpace: "pre-line" }}>{best.head}</div>
+            <div style={{ fontSize: 14, color: "#A0A0A4", marginTop: 10, lineHeight: 1.65 }}>{best.desc}</div>
+            <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 16, background: "#1C1C1F", border: "1px solid #2A2A2E", display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.accent, width: 58, flex: "none", paddingTop: 1 }}>권장 사항</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#E4E4E4", lineHeight: 1.5, flex: 1 }}>{best.req}</span>
+            </div>
           </div>
 
-          {/* Service Cards */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, marginBottom: 12, padding: "0 2px" }}>
-            다른 서비스를 선택하실 수도 있습니다
-          </div>
-          {Object.entries(SVC).map(([code, s]) => {
-            const isSel = chosen === code;
-            const isRec = recommended === code;
-            const isOemOdm = code === "OEM" || code === "ODM";
-            return (
-              <div key={code}>
-                <button onClick={() => setSelectedSvc(code)} style={{
-                  width: "100%", padding: "16px 18px", marginBottom: isOemOdm ? 4 : 10,
-                  border: `1.5px solid ${isSel ? s.color : C.border}`,
-                  borderRadius: 14, background: isSel ? `${s.color}08` : C.surface,
-                  textAlign: "left", cursor: "pointer", fontFamily: FONT,
-                  transition: "all 0.15s", display: "flex", gap: 14, alignItems: "center",
-                }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: `${s.color}12`, display: "flex",
-                    alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0,
-                  }}>{s.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{code}</span>
-                      {isRec && <span style={{
-                        fontSize: 10, fontWeight: 700, color: C.accent,
-                        background: C.accentLight, padding: "2px 7px", borderRadius: 100,
-                      }}>추천</span>}
-                    </div>
-                    <div style={{ fontSize: 12, color: C.textSub, lineHeight: 1.4 }}>{s.one}</div>
-                  </div>
-                  <div style={{
-                    width: 20, height: 20, borderRadius: "50%",
-                    border: `2px solid ${isSel ? s.color : C.border}`,
-                    background: isSel ? s.color : "transparent",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0, transition: "all 0.15s",
-                  }}>
-                    {isSel && <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.white }} />}
-                  </div>
-                </button>
-                {isOemOdm && (
-                  <div style={{ fontSize: 11, color: C.textMuted, padding: "0 6px 8px", lineHeight: 1.4 }}>
-                    화장품 책임판매업 등록 또는 03류 상표 보유 시 권장
-                  </div>
-                )}
+          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, marginTop: -18 }}>
+            {/* 진행할 서비스 선택 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 2px" }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>진행할 서비스 선택</span>
+                <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>추천과 다르게 선택 가능</span>
               </div>
-            );
-          })}
-        </div>
-        {/* 다음 단계 선택 — 제조사 OS 앱.dc.html 04번 화면 기준 두 갈래 */}
-        <div style={{ padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, padding: "8px 2px 0" }}>다음 단계 선택</div>
-          <button onClick={() => submitDiagnosis(true)} disabled={submitSt === "loading"} style={{
-            ...btn1, opacity: submitSt === "loading" ? 0.6 : 1,
-          }}>
-            {submitSt === "loading" ? "저장 중..." : "제조 품목 선택까지 진행"}
-          </button>
-          <button onClick={() => submitDiagnosis(false)} disabled={submitSt === "loading"} style={btnOutline}>
-            상담만 먼저 신청하기
-          </button>
+              {Object.entries(SVC).map(([code, s]) => {
+                const isSel = chosen === code;
+                const isRec = recommended === code;
+                return (
+                  <div key={code} onClick={() => setSelectedSvc(code)} style={{
+                    textAlign: "left", borderRadius: 22, padding: 18, cursor: "pointer", fontFamily: FONT,
+                    display: "flex", flexDirection: "column", gap: 12, transition: "transform .16s",
+                    background: isSel ? "#fff" : "#fff", border: isSel ? `2px solid ${C.accent}` : "1.5px solid transparent",
+                    boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                  }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 9, width: "100%" }}>
+                      <span style={{
+                        width: 22, height: 22, flex: "none", borderRadius: 99, display: "grid", placeItems: "center",
+                        fontSize: 12, fontWeight: 800, color: isSel ? "#fff" : "#B0B0B4",
+                        background: isSel ? C.accent : "transparent", border: isSel ? "none" : "1.5px solid #D4D4D6",
+                      }}>{isSel ? "✓" : ""}</span>
+                      <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.5, color: "#111" }}>{code}</span>
+                      {isRec && <span style={{ fontSize: 10.5, fontWeight: 800, padding: "3px 8px", borderRadius: 99, color: C.accent, background: "#FDF1EC" }}>추천</span>}
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.45, letterSpacing: -0.4, whiteSpace: "pre-line", color: "#111" }}>{s.head}</span>
+                    <span style={{ fontSize: 13.5, lineHeight: 1.6, color: "#8A8A8E" }}>{s.desc}</span>
+                    {isSel && (
+                      <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, paddingTop: 12, borderTop: "1px solid #EFEFF0" }}>
+                        <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.accent }}>고객 준비 범위</span>
+                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{s.cust}</span>
+                        </span>
+                        <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: "#8A8A8E" }}>본사 제공 범위</span>
+                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{s.hq}</span>
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "#F7F7F8" }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#434343", flex: "none" }}>권장 사항</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#434343" }}>{s.req}</span>
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 다음 단계 선택 */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 2px 0" }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>다음 단계 선택</span>
+              <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{chosen} 기준</span>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,.04)", border: `2px solid ${C.accent}`, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 9px", borderRadius: 99, background: C.accent, color: "#fff" }}>권장</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>개발의뢰서까지 작성</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>제조 품목 선택</span>
+                <span style={{ fontSize: 11, color: "#C4C4C6", fontWeight: 800 }}>→</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>개발의뢰서</span>
+                <span style={{ fontSize: 11, color: "#C4C4C6", fontWeight: 800 }}>→</span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#fff", padding: "6px 11px", borderRadius: 10, background: C.accent }}>가견적</span>
+              </div>
+              <div style={{ borderRadius: 16, background: "#FDF1EC", border: "1px solid #F6D9CD", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 20, height: 20, flex: "none", borderRadius: 99, background: C.accent, color: "#fff", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center" }}>!</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A3520", letterSpacing: -0.4 }}>가견적 산출 안내</span>
+                </div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A3520" }}>개발의뢰서 작성 시 가견적 산출이 가능합니다.</div>
+                <div style={{ fontSize: 13, color: "#8C5340", lineHeight: 1.65, fontWeight: 600 }}>
+                  가견적은 고객이 현재까지 제공한 제품 정보와 개발 조건을 기준으로 산출한 예상 견적입니다. 제형·원료·용기·패키지·생산수량 및 서비스 범위가 구체화되면 제조 조건도 함께 확정되므로, 최종 견적은 상담 및 검토를 거쳐 조정될 수 있습니다.
+                </div>
+              </div>
+              <button onClick={() => submitDiagnosis(true)} disabled={submitSt === "loading"} style={{
+                height: 54, border: 0, borderRadius: 16, background: C.accent, color: "#fff", fontSize: 16, fontWeight: 800,
+                cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4, opacity: submitSt === "loading" ? 0.6 : 1,
+              }}>{submitSt === "loading" ? "저장 중..." : "제조 품목 선택하기"}</button>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,.04)", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>상담 먼저 진행</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", lineHeight: 1.6, fontWeight: 600 }}>제품 사양이 아직 정해지지 않은 경우. 담당자와 상담 후 개발의뢰서를 작성하며, 가견적은 의뢰서 작성 이후 산출됩니다.</div>
+              <button onClick={() => submitDiagnosis(false)} disabled={submitSt === "loading"} style={{
+                height: 50, border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff", color: "#434343",
+                fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
+              }}>상담만 신청하기</button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -999,56 +1073,102 @@ function MainFlow() {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: MEETING (07 상담 일정 — 최소 기능 버전) ━━━━━━━━━━
+  // ━━━━━━━━━━ PHASE: MEETING (제조사 OS 앱.dc.html · 07 상담 일정 기준) ━━━━━━━━━━
+  // 실제 담당자 캘린더·6자리 접근 코드 발급(고객 페이지 접근 이력 DB)은 아직 없어,
+  // 슬롯 선택 UI만 디자인대로 만들고 코드 카드는 다음 단계로 남겨둔다.
   if (phase === "meeting") {
+    const slots = upcomingSlots(4);
+    const pickedSlot = slots.find(s => s.date === form.meetingDate1 && s.time === form.meetingTime1);
+
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
-        <div style={{ flex: "none", padding: "14px 20px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>1차 제조 상담 일정</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 3, fontWeight: 600 }}>
-              {form.willWriteDoc ? "개발의뢰서 작성 후 담당자가 별도 안내해 드립니다" : "담당자와 30분간 Zoom으로 진행됩니다"}
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>
+              담당자 배정 예정 · 30분 · Zoom{form.willWriteDoc ? " · 개발의뢰서는 상담 후 별도 안내" : ""}
             </div>
           </div>
-        </div>
-        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "2px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+
           <div style={card2}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>희망 미팅일 <span style={{ color: C.accent }}>*</span> <span style={{ fontWeight: 600, fontSize: 12, color: "#8A8A8E" }}>ZOOM 미팅</span></div>
-              <div style={{ fontSize: 11.5, color: "#B0B0B4", marginTop: 6, lineHeight: 1.5 }}>※ 한국 시간(KST) 기준 · 영업일(월~금) · 09:00~18:00</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>
+                {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
+              </span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.accent }}>가능 일정 {slots.length}건</span>
             </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>1안 (필수)</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="date" value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
-                  style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
-                <select value={form.meetingTime1 || ""} onChange={e => setField("meetingTime1", e.target.value)} style={uInp}>
-                  <option value="">시간 선택</option>
-                  {Array.from({ length: 19 }, (_, i) => {
-                    const h = 9 + Math.floor(i / 2);
-                    const m = i % 2 === 0 ? "00" : "30";
-                    if (h >= 18 && m === "30") return null;
-                    return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
-                  }).filter(Boolean)}
-                </select>
-              </div>
-              <Err f="meetingDate1" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {slots.map((s, i) => {
+                const sel = form.meetingDate1 === s.date && form.meetingTime1 === s.time;
+                return (
+                  <button key={i} onClick={() => { setField("meetingDate1", s.date); setField("meetingTime1", s.time); }} style={{
+                    textAlign: "left", borderRadius: 16, padding: "15px 16px", cursor: "pointer", fontFamily: FONT,
+                    display: "flex", alignItems: "center", gap: 13, transition: "all .18s",
+                    background: sel ? "#FDF1EC" : "#F4F4F5", border: sel ? `1.5px solid ${C.accent}` : "1.5px solid transparent",
+                  }}>
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 42, flex: "none" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: sel ? C.accent : "#9A9A9E" }}>{s.dow}</span>
+                      <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.6, color: sel ? C.accent : "#111" }}>{s.day}</span>
+                    </span>
+                    <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.4, color: sel ? "#7A3520" : "#111" }}>{s.time}</span>
+                    {sel && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.accent }}>선택됨</span>}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>2안 (선택)</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="date" value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
-                <select value={form.meetingTime2 || ""} onChange={e => setField("meetingTime2", e.target.value)} style={uInp}>
-                  <option value="">시간 선택</option>
-                  {Array.from({ length: 19 }, (_, i) => {
-                    const h = 9 + Math.floor(i / 2);
-                    const m = i % 2 === 0 ? "00" : "30";
-                    if (h >= 18 && m === "30") return null;
-                    return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
-                  }).filter(Boolean)}
-                </select>
+            <button onClick={() => setShowManualDate(v => !v)} style={{
+              alignSelf: "flex-start", background: "none", border: 0, padding: 0, cursor: "pointer",
+              fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: "#8A8A8E", textDecoration: "underline",
+            }}>{showManualDate ? "제안된 일정으로 돌아가기" : "제안된 일정이 안 맞으신가요? 직접 선택"}</button>
+
+            {showManualDate && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 일시</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="date" value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
+                      style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
+                    <select value={form.meetingTime1 || ""} onChange={e => setField("meetingTime1", e.target.value)} style={uInp}>
+                      <option value="">시간 선택</option>
+                      {Array.from({ length: 19 }, (_, i) => {
+                        const h = 9 + Math.floor(i / 2);
+                        const m = i % 2 === 0 ? "00" : "30";
+                        if (h >= 18 && m === "30") return null;
+                        return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
+                      }).filter(Boolean)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>2안 (선택)</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="date" value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
+                    <select value={form.meetingTime2 || ""} onChange={e => setField("meetingTime2", e.target.value)} style={uInp}>
+                      <option value="">시간 선택</option>
+                      {Array.from({ length: 19 }, (_, i) => {
+                        const h = 9 + Math.floor(i / 2);
+                        const m = i % 2 === 0 ? "00" : "30";
+                        if (h >= 18 && m === "30") return null;
+                        return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
+                      }).filter(Boolean)}
+                    </select>
+                  </div>
+                </div>
               </div>
+            )}
+            <Err f="meetingDate1" />
+          </div>
+
+          <div style={card2}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>사전 확인 사항</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["브랜드 콘셉트 자료 · 벤치마크 제품 정보", "목표 판매가 · 유통 채널 · 예상 물량", "수출 예정 국가 및 인증 요구사항"].map((t, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: C.accent, marginTop: 7, flex: "none" }} />
+                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.5, fontWeight: 600 }}>{t}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1058,7 +1178,7 @@ function MainFlow() {
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
             opacity: submitSt === "loading" ? 0.6 : 1,
           }}>
-            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "상담 신청 완료"}
+            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : pickedSlot ? `${pickedSlot.dow}요일 ${pickedSlot.time} 상담 신청` : "상담 신청 완료"}
           </button>
         </div>
       </div>
