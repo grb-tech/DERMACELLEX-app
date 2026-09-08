@@ -2,7 +2,7 @@
 // 발신 도메인을 아직 인증하지 않았다면 RESEND_FROM을 비워둬도 Resend 테스트 발신 주소로 동작한다.
 
 export async function sendEmail(apiKey, { to, subject, html }) {
-  const from = process.env.RESEND_FROM || 'DERMACELLEX <BSG_System@bsgholdings.co.kr>';
+  const from = process.env.RESEND_FROM || 'DERMACELLEX <bsg_system@bsgholdings.co.kr>';
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
