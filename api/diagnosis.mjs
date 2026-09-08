@@ -2,7 +2,7 @@
 // 고객에게는 점수·등급을 절대 보여주지 않는다 — 이 응답은 화면에 그대로 노출하지 말 것
 // (기획서 4장 "고객 진단으로 계산된 서비스 적합도는 내부 후보값" 원칙).
 
-import { DB, createPage, notionCall, cors, text, title, select, multiSelect } from './_notion.mjs';
+import { DB, createPage, cors, title, select, multiSelect } from './_notion.mjs';
 
 export default async function handler(req, res) {
   cors(res);
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const data = req.body;
-    const { clientId, inquiryId, businessName } = data;
+    const { clientId, businessName } = data;
     if (!clientId) return res.status(400).json({ success: false, error: 'clientId가 없습니다. 먼저 /api/register를 호출해주세요.' });
 
     const raw = data.sectionRaw || {};
@@ -96,20 +96,6 @@ export default async function handler(req, res) {
       '희망서비스': select(svc),
       '제출일': { date: { start: new Date().toISOString().substring(0, 10) } },
     }, scoreChildren);
-
-    // 개발의뢰서를 작성하기로 한 경우, 거래처 비고에 의뢰서 작성 링크를 남겨 담당자가 바로 전달할 수 있게 한다.
-    // (제품 개발의뢰서 05·06 화면이 아직 없어, 당분간은 담당자가 이 링크를 고객에게 직접 안내한다.)
-    if (data.willWriteDoc && inquiryId) {
-      const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dermacellex-sxip.vercel.app';
-      const formUrl = `${BASE_URL}/form?inquiry=${inquiryId}`;
-      const clientPage = await notionCall(TOKEN, 'GET', `/pages/${clientId}`);
-      const prevNote = clientPage.properties?.['비고']?.rich_text?.map(t => t.plain_text).join('') || '';
-      await notionCall(TOKEN, 'PATCH', `/pages/${clientId}`, {
-        properties: { '비고': text(`${prevNote}${prevNote ? ' / ' : ''}개발의뢰서 링크: ${formUrl}`) },
-      });
-    }
 
     return res.status(200).json({ success: true, grade, totalScore });
   } catch (err) {

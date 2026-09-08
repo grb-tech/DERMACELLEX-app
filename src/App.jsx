@@ -419,12 +419,31 @@ function MainFlow() {
   const [reg, setReg] = useState(null);
   // 노션에 이미 '미팅 확정일'이 등록된 슬롯(ISO 날짜/일시 문자열) — 07 화면에서 선택 못하게 막는다
   const [bookedSlots, setBookedSlots] = useState([]);
+  // 05 제조 품목 화면 — 노션 "제조 품목" DB에서 가져온 카탈로그 · 검색어 · 대분류 필터 · 선택한 품목
+  const [catalog, setCatalog] = useState([]);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const [catalogCat, setCatalogCat] = useState("전체");
+  const [pickedItems, setPickedItems] = useState([]);
+  // 전용 페이지 접근 코드(상담 신청 시 1회 발급) · 로그인 입력값 · 로그인 후 받아온 전용 페이지 데이터
+  const [accessCode, setAccessCode] = useState("");
+  const [codeEmailed, setCodeEmailed] = useState(false);
+  const [portalPhone, setPortalPhone] = useState("");
+  const [portalCode, setPortalCode] = useState("");
+  const [portalErr, setPortalErr] = useState("");
+  const [portalData, setPortalData] = useState(null);
   const cRef = useRef(null);
 
   useEffect(() => {
     if (phase !== "meeting") return;
     fetch("/api/meeting-slots").then(r => r.json()).then(d => {
       if (d.success) setBookedSlots(d.booked || []);
+    }).catch(() => {});
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "items" || catalog.length > 0) return;
+    fetch("/api/catalog").then(r => r.json()).then(d => {
+      if (d.success) setCatalog(d.items || []);
     }).catch(() => {});
   }, [phase]);
 
@@ -583,9 +602,37 @@ function MainFlow() {
       if (!result.success) throw new Error(result.error || "서버 오류");
       setField("willWriteDoc", willWriteDoc);
       setSubmitSt(null);
-      setPhase("meeting");
+      setPhase(willWriteDoc ? "items" : "meeting");
     } catch (err) {
       console.error("Diagnosis error:", err);
+      setSubmitSt("error");
+      setTimeout(() => setSubmitSt(null), 3000);
+    }
+  };
+
+  // ─── 05 선택한 제조 품목으로 개발의뢰서(품목별 1건) 생성 ───
+  const submitItems = async () => {
+    if (pickedItems.length === 0) return;
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/devform", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inquiryId: reg?.inquiryId,
+          products: pickedItems.map(it => ({
+            productName: it.name,
+            productType: it.category,
+            formulation: it.form,
+          })),
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "서버 오류");
+      setSubmitSt(null);
+      setPhase("meeting");
+    } catch (err) {
+      console.error("Items submit error:", err);
       setSubmitSt("error");
       setTimeout(() => setSubmitSt(null), 3000);
     }
@@ -617,12 +664,40 @@ function MainFlow() {
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "서버 오류");
+      setAccessCode(result.accessCode || "");
+      setCodeEmailed(!!result.emailSent);
+      setPortalPhone(form.phone);
       setSubmitSt("success");
       setPhase("complete");
     } catch (err) {
       console.error("Meeting error:", err);
       setSubmitSt("error");
       setTimeout(() => setSubmitSt(null), 3000);
+    }
+  };
+
+  // ─── 전용 페이지 로그인(연락처 + 6자리 코드) ───
+  const submitPortalLogin = async () => {
+    setPortalErr("");
+    if (!portalPhone.trim() || !/^\d{6}$/.test(portalCode.trim())) {
+      setPortalErr("연락처와 6자리 코드를 정확히 입력해주세요.");
+      return;
+    }
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/portal-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: portalPhone.trim(), code: portalCode.trim() }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "인증에 실패했습니다.");
+      setPortalData(result);
+      setSubmitSt(null);
+      setPhase("portal");
+    } catch (err) {
+      setPortalErr(err.message);
+      setSubmitSt(null);
     }
   };
 
@@ -745,7 +820,7 @@ function MainFlow() {
               fontSize: 17, fontWeight: 800, letterSpacing: -0.4, cursor: "pointer", fontFamily: FONT,
               boxShadow: "0 12px 28px -12px rgba(234,92,42,.9)",
             }}>제조서비스 문의하기</button>
-            <button style={{
+            <button onClick={() => setPhase("portal-login")} style={{
               height: 58, border: "1px solid #2E2E32", borderRadius: 18, background: "#141416",
               color: "#E4E4E4", fontSize: 17, fontWeight: 700, letterSpacing: -0.4, cursor: "pointer", fontFamily: FONT,
             }}>전용 페이지 이동하기</button>
@@ -1081,6 +1156,106 @@ function MainFlow() {
     );
   }
 
+  // ━━━━━━━━━━ PHASE: ITEMS (제조사 OS 앱.dc.html · 05 제조 품목 검색 · 선택 기준) ━━━━━━━━━━
+  // 노션 "제조 품목" DB에서 '활성' · '고객 앱 노출' 둘 다 체크된 항목만 불러온다(/api/catalog).
+  // 06번 화면(기획개발의뢰서 4단계 마법사 — 콘셉트 키워드 · 원료 · 용기 · 일정 등)은 아직 없어서,
+  // 우선 선택한 품목별로 최소 정보(품목명·대분류·제형)만 담아 개발의뢰서를 바로 생성한다.
+  if (phase === "items") {
+    const cats = ["전체", ...Array.from(new Set(catalog.map(it => it.category).filter(Boolean)))];
+    const catCount = c => c === "전체" ? catalog.length : catalog.filter(it => it.category === c).length;
+    const q = catalogQuery.trim().toLowerCase();
+    const filtered = catalog.filter(it => {
+      if (catalogCat !== "전체" && it.category !== catalogCat) return false;
+      if (!q) return true;
+      return [it.name, it.group, it.form].some(v => (v || "").toLowerCase().includes(q));
+    });
+    const isPicked = id => pickedItems.some(p => p.id === id);
+    const toggleItem = (it) => {
+      if (it.status === "불가" || it.status === "중단") return;
+      setPickedItems(prev => isPicked(it.id) ? prev.filter(p => p.id !== it.id) : [...prev, it]);
+    };
+    const statusColor = (s) => (
+      s === "가능" ? { fg: "#1E7A46", bg: "#E7F5EC" } :
+      s === "조건부 검토" ? { fg: "#8A6D1B", bg: "#FBF2D6" } :
+      s === "검토 필요" ? { fg: "#B0562A", bg: "#FDF1EC" } :
+      { fg: "#8A8A8E", bg: "#EFEFF0" }
+    );
+
+    return (
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
+        <style>{css}</style>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 가능 품목</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 16px", background: "#fff", borderRadius: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+            <span style={{ fontSize: 15, color: "#B0B0B4" }}>⌕</span>
+            <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="제형 · 제품군 검색"
+              style={{ flex: 1, border: 0, outline: "none", fontSize: 15, fontWeight: 600, fontFamily: FONT, color: "#111", background: "transparent" }} />
+          </div>
+          <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
+            {cats.map(c => {
+              const active = catalogCat === c;
+              return (
+                <button key={c} onClick={() => setCatalogCat(c)} style={{
+                  flex: "none", height: 36, padding: "0 14px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: FONT, whiteSpace: "nowrap", transition: "all .18s",
+                  background: active ? "#111" : "#fff", color: active ? "#fff" : "#434343",
+                  border: active ? "1.5px solid #111" : "1.5px solid transparent",
+                }}>{c} {catCount(c)}</button>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {filtered.map(it => {
+              const sel = isPicked(it.id);
+              const sc = statusColor(it.status);
+              const blocked = it.status === "불가" || it.status === "중단";
+              return (
+                <button key={it.id} onClick={() => toggleItem(it)} disabled={blocked} style={{
+                  textAlign: "left", borderRadius: 18, padding: "15px 16px", cursor: blocked ? "not-allowed" : "pointer", fontFamily: FONT,
+                  display: "flex", gap: 13, alignItems: "center", transition: "border-color .2s",
+                  background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                  border: sel ? `1.5px solid ${C.accent}` : "1.5px solid transparent", opacity: blocked ? 0.5 : 1,
+                }}>
+                  <span style={{ width: 44, height: 44, flex: "none", borderRadius: 14, background: "repeating-linear-gradient(135deg,#E4E4E4 0 6px,#EFEFF0 6px 12px)" }} />
+                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
+                    </span>
+                    <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[it.category, it.group, it.form].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  <span style={{
+                    width: 24, height: 24, flex: "none", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 800, color: sel ? "#fff" : "#C4C4C6",
+                    background: sel ? C.accent : "transparent", border: sel ? "none" : "1.5px solid #E4E4E4",
+                  }}>{sel ? "✓" : ""}</span>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>
+                {catalog.length === 0 ? "품목을 불러오는 중..." : "검색 결과 없음 · 담당자 확인 요청 가능"}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ flex: "none", padding: "14px 20px", background: "#111", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <span style={{ fontSize: 12, color: "#9A9A9E", fontWeight: 600 }}>선택한 품목</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {pickedItems.length === 0 ? "품목을 선택해주세요" : pickedItems.map(p => p.name).join(", ")}
+            </span>
+          </div>
+          <button onClick={submitItems} disabled={pickedItems.length === 0 || submitSt === "loading"} style={{
+            height: 48, padding: "0 22px", border: 0, borderRadius: 16, background: C.accent, color: "#fff",
+            fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, transition: "opacity .18s",
+            opacity: (pickedItems.length === 0 || submitSt === "loading") ? 0.5 : 1, flex: "none",
+          }}>{submitSt === "loading" ? "저장 중..." : `의뢰서 ${pickedItems.length}건 만들기`}</button>
+        </div>
+      </div>
+    );
+  }
+
   // ━━━━━━━━━━ PHASE: MEETING (제조사 OS 앱.dc.html · 07 상담 일정 기준) ━━━━━━━━━━
   // 실제 담당자 캘린더·6자리 접근 코드 발급(고객 페이지 접근 이력 DB)은 아직 없어,
   // 슬롯 선택 UI만 디자인대로 만들고 코드 카드는 다음 단계로 남겨둔다.
@@ -1184,10 +1359,28 @@ function MainFlow() {
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: C.text }}>접수가 완료되었습니다</h2>
             <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.7 }}>
-              담당자가 확인 후<br />
-              <strong style={{ color: C.text }}>기입하신 이메일로 안내</strong>드리겠습니다.
+              아래 <strong style={{ color: C.text }}>전용 페이지 접속 코드</strong>로<br />
+              진행 상황을 바로 확인하실 수 있습니다.
             </p>
           </div>
+
+          {/* 전용 페이지 접속 코드 */}
+          {accessCode && (
+            <div style={{
+              background: "#111", borderRadius: 18, padding: "22px 20px", marginBottom: 20,
+              display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center",
+            }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>전용 페이지 접속 코드 · 연락처와 함께 사용</span>
+              <span style={{ fontSize: 34, fontWeight: 800, color: "#fff", letterSpacing: 6, fontFamily: "ui-monospace, monospace" }}>{accessCode}</span>
+              <span style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600 }}>
+                {codeEmailed ? "담당자 이메일로도 발송되었습니다 · 이 화면에서는 지금 한 번만 표시됩니다" : "이 코드는 지금 한 번만 표시됩니다 · 꼭 저장해주세요"}
+              </span>
+              <button onClick={() => setPhase("portal-login")} style={{
+                width: "100%", height: 48, border: 0, borderRadius: 14, background: C.accent, color: "#fff",
+                fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, marginTop: 4,
+              }}>전용 페이지 바로가기</button>
+            </div>
+          )}
 
           {/* Summary */}
           <div style={{
@@ -1224,7 +1417,7 @@ function MainFlow() {
           }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>다음 단계 안내</div>
             {[
-              { n: "1", t: "담당자 배정 및 가이드 메일 발송" },
+              { n: "1", t: "담당자 배정 및 전용 페이지에서 진행 상황 확인" },
               { n: "2", t: "미팅 일정 확정 (ZOOM)" },
               { n: "3", t: form.willWriteDoc ? "개발의뢰서 양식 안내" : "상담 후 개발의뢰서 안내" },
               { n: "4", t: "가견적 산출 및 계약 검토" },
@@ -1245,8 +1438,97 @@ function MainFlow() {
             background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`,
             padding: "16px 18px", fontSize: 13, color: C.textSub, lineHeight: 1.7,
           }}>
-            📧 메일 확인이 어려우신 경우 아래 연락처로 문의해 주세요.<br />
+            🔑 접속 코드를 분실하신 경우 아래 연락처로 문의해 주세요.<br />
             <strong style={{ color: C.text }}>이메일:</strong> contact@dermacellex.com
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ━━━━━━━━━━ PHASE: PORTAL LOGIN (md 문서 8장 "전용 페이지" 접근 — 연락처 + 6자리 코드) ━━━━━━━━━━
+  if (phase === "portal-login") {
+    return (
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
+        <style>{css}</style>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>전용 페이지</div>
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>연락처와 접속 코드로 진행 상황을 확인하세요.</div>
+          </div>
+          <div style={card2}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>연락처</div>
+              <input value={portalPhone} onChange={e => setPortalPhone(e.target.value)} placeholder="010-0000-0000" style={uInp} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>6자리 접속 코드</div>
+              <input value={portalCode} onChange={e => setPortalCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000"
+                style={{ ...uInp, fontFamily: "ui-monospace, monospace", letterSpacing: 4 }} />
+            </div>
+            {portalErr && <div style={{ fontSize: 12, color: C.error, fontWeight: 700 }}>{portalErr}</div>}
+          </div>
+        </div>
+        <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4" }}>
+          <button onClick={submitPortalLogin} disabled={submitSt === "loading"} style={{
+            width: "100%", height: 52, border: 0, borderRadius: 16, background: "#111",
+            color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
+            opacity: submitSt === "loading" ? 0.6 : 1,
+          }}>{submitSt === "loading" ? "확인 중..." : "전용 페이지 접속"}</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ━━━━━━━━━━ PHASE: PORTAL (md 문서 8장 "전용 페이지 구성" — 문의 · 미팅 · 제품개발의뢰서만 우선 노출) ━━━━━━━━━━
+  // 09~13번 화면(대시보드·가견적·계약·타임라인·알림)의 정식 디자인은 아직 없어, 표의 앞부분
+  // (문의 상태 · 미팅 · 제품개발의뢰서)만 담은 최소 버전이다. 진단 점수·등급·위험 플래그는
+  // /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
+  if (phase === "portal" && portalData) {
+    const { inquiry, meeting, products } = portalData;
+    const fmt = (d) => d ? new Date(d).toLocaleString("ko") : "-";
+    return (
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
+        <style>{css}</style>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{inquiry.name || "제조 문의"}</div>
+            <div style={{ fontSize: 13.5, color: C.accent, marginTop: 5, fontWeight: 700 }}>현재 상태 · {inquiry.status || "-"}</div>
+          </div>
+
+          <div style={card2}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>상담 · 미팅</div>
+            {meeting ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  ["상태", meeting.status || "-"],
+                  ["미팅 확정일", meeting.confirmed ? fmt(meeting.confirmed) : "담당자 확정 대기중"],
+                  ["희망 1안", fmt(meeting.wish1)],
+                  ["희망 2안", meeting.wish2 ? fmt(meeting.wish2) : "-"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+                    <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{k}</span>
+                    <span style={{ color: "#111", fontWeight: 700 }}>{v}</span>
+                  </div>
+                ))}
+                {meeting.zoomLink && (
+                  <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{
+                    marginTop: 4, height: 44, borderRadius: 12, background: "#F4F4F5", color: "#111",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13.5, fontWeight: 800, textDecoration: "none",
+                  }}>Zoom 접속 링크</a>
+                )}
+              </div>
+            ) : <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>등록된 상담 일정이 없습니다.</div>}
+          </div>
+
+          <div style={card2}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>제품개발의뢰서</div>
+            {products.length > 0 ? products.map((p, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+              </div>
+            )) : <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>작성된 개발의뢰서가 없습니다.</div>}
           </div>
         </div>
       </div>

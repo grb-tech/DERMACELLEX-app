@@ -17,7 +17,30 @@ export const DB = {
   MEETING: '3d14c864-7128-8091-982b-d3ff6202ebc0',
   // 📋 제품개발의뢰서
   DEVREQUEST: '3d04c864-7128-80c9-8cda-ee52c1c58cc8',
+  // 제조 품목 (05 화면 카탈로그)
+  CATALOG: '56544524-d8f6-45b3-a1ac-4a4813622546',
+  // 고객 페이지 접근 이력 (전용 페이지 6자리 코드)
+  ACCESS: '3d14c864-7128-80e8-9aa3-dc242a6f801c',
 };
+
+export function queryDb(token, databaseId, filter, sorts) {
+  return notionCall(token, 'POST', `/databases/${databaseId}/query`, {
+    ...(filter ? { filter } : {}),
+    ...(sorts ? { sorts } : {}),
+    page_size: 20,
+  });
+}
+
+export function plain(prop, kind) {
+  if (!prop) return '';
+  if (kind === 'title') return (prop.title || []).map(t => t.plain_text).join('');
+  if (kind === 'text') return (prop.rich_text || []).map(t => t.plain_text).join('');
+  if (kind === 'select') return prop.select?.name || '';
+  if (kind === 'status') return prop.status?.name || '';
+  if (kind === 'date') return prop.date?.start || '';
+  if (kind === 'url') return prop.url || '';
+  return '';
+}
 
 export async function notionCall(token, method, endpoint, body) {
   const r = await fetch('https://api.notion.com/v1' + endpoint, {
