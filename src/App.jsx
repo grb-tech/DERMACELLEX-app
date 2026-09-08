@@ -562,6 +562,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [submitSt, setSubmitSt] = useState(null);
   // 02 고객 정보 등록 시 노션에 만들어지는 거래처 · 담당자 · 제조 문의 ID (이후 진단·미팅이 여기에 연결됨)
   const [reg, setReg] = useState(null);
+  // 08 기존 고객 재문의 — 이메일로 조회된 기존 거래처 · 담당자 · 이전 문의 이력(md 3.3절)
+  const [existingCustomer, setExistingCustomer] = useState(null);
+  const [existingDismissed, setExistingDismissed] = useState(false);
   // 노션에 이미 '미팅 확정일'이 등록된 슬롯(ISO 날짜/일시 문자열) — 07 화면에서 선택 못하게 막는다
   const [bookedSlots, setBookedSlots] = useState([]);
   // 05 제조 품목 화면 — 노션 "제조 품목" DB에서 가져온 카탈로그 · 검색어 · 대분류 필터 · 선택한 품목
@@ -717,6 +720,58 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       setPhase("quiz");
     } catch (err) {
       console.error("Register error:", err);
+      setSubmitSt("error");
+      setTimeout(() => setSubmitSt(null), 3000);
+    }
+  };
+
+  // ─── 이메일 입력을 마치면 기존 고객인지 확인한다(md 3.3절 "1. 등록된 담당자로 기존 고객 확인") ───
+  const lookupExisting = async () => {
+    const email = form.email.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    try {
+      const res = await fetch("/api/lookup-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await res.json();
+      if (result.success && result.found) {
+        setExistingCustomer(result);
+        setExistingDismissed(false);
+      }
+    } catch (err) {
+      console.error("Lookup existing customer error:", err);
+    }
+  };
+
+  // ─── 08 기존 고객: 진단 없이 거래처 · 담당자를 재사용해 새 제조 문의만 만든다 ───
+  const registerExisting = async (willWriteDoc) => {
+    if (!existingCustomer) return;
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          existing: {
+            clientId: existingCustomer.client.id,
+            contactId: existingCustomer.contact.id,
+            businessName: existingCustomer.client.name,
+          },
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "서버 오류");
+      setReg({ clientId: result.clientId, contactId: result.contactId, inquiryId: result.inquiryId });
+      setField("businessName", existingCustomer.client.name);
+      setField("name", existingCustomer.contact.name);
+      setField("email", form.email);
+      setField("willWriteDoc", willWriteDoc);
+      setSubmitSt(null);
+      setPhase(willWriteDoc ? "items" : "meeting");
+    } catch (err) {
+      console.error("Existing register error:", err);
       setSubmitSt("error");
       setTimeout(() => setSubmitSt(null), 3000);
     }
@@ -1353,9 +1408,28 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <Err f="phone" />
             </UField>
             <UField label="이메일" req>
-              <input value={form.email} placeholder="brand@dermatest.co.kr" type="email" onChange={e => setField("email", e.target.value)} style={uInp} />
+              <input value={form.email} placeholder="brand@dermatest.co.kr" type="email"
+                onChange={e => { setField("email", e.target.value); setExistingCustomer(null); }}
+                onBlur={lookupExisting} style={uInp} />
               <Err f="email" />
             </UField>
+            {existingCustomer && !existingDismissed && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "#EAF6F0", border: "1px solid #CBE7DA" }}>
+                <span style={{ fontSize: 13, color: "#1F6B4A", fontWeight: 700, lineHeight: 1.5 }}>
+                  {existingCustomer.contact.name}님, 등록된 고객으로 확인되었습니다 — 진단 없이 바로 진행할 수 있습니다.
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setPhase("returning")} style={{
+                    flex: 1, height: 40, border: 0, borderRadius: 10, background: "#1F6B4A", color: "#fff",
+                    fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
+                  }}>이전 정보로 진행</button>
+                  <button onClick={() => setExistingDismissed(true)} style={{
+                    flex: "none", height: 40, padding: "0 14px", border: "1px solid #CBE7DA", borderRadius: 10, background: "transparent",
+                    color: "#1F6B4A", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
+                  }}>새로 입력할게요</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 주요 유통국가 + 문의 경로 */}
@@ -1390,6 +1464,91 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           }}>
             {submitSt === "loading" ? "저장 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "진단 시작"}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ━━━━━━━━━━ PHASE: RETURNING (제조사 OS 앱.dc.html · 08 기존 고객 재문의 기준) ━━━━━━━━━━
+  // md 3.3절: 기존 고객은 진단을 다시 하지 않는다. 이메일로 이미 확인된 거래처 · 담당자를
+  // 재사용해 새 제조 문의만 만들고, 04번 화면과 같은 "품목 먼저 vs 상담 먼저" 분기로 곧장 간다.
+  if (phase === "returning" && existingCustomer) {
+    const { client, contact, stats, history } = existingCustomer;
+    const initial = (client.name || "?").trim().charAt(0);
+    const statusColor = (s) => (
+      s === "완료" || s === "프로젝트 전환" ? { fg: "#1E7A46", bg: "#E7F5EC" } :
+      s === "종료" || s === "14일 내 미날인 종료" ? { fg: "#8A8A8E", bg: "#EFEFF0" } :
+      { fg: "#B0562A", bg: "#FDF1EC" }
+    );
+    return (
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
+        <style>{css}</style>
+        <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>다시 오셨네요</div>
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>등록된 거래처로 확인되어 진단을 건너뜁니다</div>
+          </div>
+
+          <div style={{ background: "#111", borderRadius: 22, padding: 20, color: "#fff", display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 46, height: 46, borderRadius: 14, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, flex: "none" }}>{initial}</span>
+              <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4 }}>{client.name}</span>
+                <span style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 600 }}>{[contact.name, contact.position, contact.department].filter(Boolean).join(" · ")}</span>
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "5px 10px", borderRadius: 99, background: "#2A2A2E", color: "#E4E4E4", flex: "none" }}>기존</span>
+            </div>
+            <div style={{ display: "flex", gap: 10, paddingTop: 16, borderTop: "1px solid #2A2A2E" }}>
+              {[["누적 문의", stats.totalInquiries], ["진행 프로젝트", stats.activeProjects], ["출시 품목", stats.shippedProducts]].map(([label, n]) => (
+                <div key={label} style={{ flex: 1 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.6 }}>{n}</div>
+                  <div style={{ fontSize: 11.5, color: "#8A8A8E", fontWeight: 600, marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, padding: "14px 16px", borderRadius: 16, background: "#EAF6F0", border: "1px solid #CBE7DA" }}>
+            <span style={{ fontSize: 13, color: "#1F6B4A", fontWeight: 700, lineHeight: 1.5 }}>맞춤 진단 생략 · 거래처와 담당자 정보 자동 연결됨</span>
+          </div>
+
+          {history.length > 0 && (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#111", marginTop: 2 }}>이전 문의 이어가기</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {history.map((h, i) => {
+                  const sc = statusColor(h.status);
+                  return (
+                    <div key={i} style={{ borderRadius: 18, padding: 16, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", flexDirection: "column", gap: 9 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E" }}>{h.uid}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: sc.fg, background: sc.bg }}>{h.status || "-"}</span>
+                      </span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{h.type || "제조 문의"}</span>
+                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{h.createdAt ? new Date(h.createdAt).toLocaleDateString("ko") : "-"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div style={{
+            marginTop: 4, borderRadius: 18, padding: 18, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+            display: "flex", flexDirection: "column", gap: 10,
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>새 제조 문의 시작하기</div>
+            <button onClick={() => registerExisting(true)} disabled={submitSt === "loading"} style={{
+              height: 54, border: 0, borderRadius: 16, background: C.accent, color: "#fff",
+              fontSize: 15.5, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
+              opacity: submitSt === "loading" ? 0.6 : 1,
+            }}>제조 품목 선택부터 시작</button>
+            <button onClick={() => registerExisting(false)} disabled={submitSt === "loading"} style={{
+              height: 54, border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff", color: "#434343",
+              fontSize: 15.5, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
+              opacity: submitSt === "loading" ? 0.6 : 1,
+            }}>{submitSt === "loading" ? "처리 중..." : "상담부터 받을게요"}</button>
+          </div>
         </div>
       </div>
     );
