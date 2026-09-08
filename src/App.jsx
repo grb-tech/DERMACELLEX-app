@@ -289,11 +289,11 @@ const QUESTIONS = [
 
 // ── Section weights ──
 const SECTION_WEIGHTS = {
-  1: { maxRaw: 19, scaled: 15, label: "사업·브랜드" },
-  2: { maxRaw: 25, scaled: 25, label: "제품·생산" },
-  3: { maxRaw: 15, scaled: 20, label: "생산·발주" },
-  4: { maxRaw: 15, scaled: 15, label: "프로젝트 실행" },
-  5: { maxRaw: 24, scaled: 15, label: "판매·협업" },
+  1: { maxRaw: 19, scaled: 15, label: "사업·브랜드", guide: "사업자와 브랜드 준비 상태를 확인합니다" },
+  2: { maxRaw: 25, scaled: 25, label: "제품·생산", guide: "개발할 제품이 얼마나 구체화되었는지 확인합니다" },
+  3: { maxRaw: 15, scaled: 20, label: "생산·발주", guide: "생산 수량과 발주 계획을 확인합니다" },
+  4: { maxRaw: 15, scaled: 15, label: "프로젝트 실행", guide: "예산 · 담당 조직 · 의사결정 구조를 확인합니다" },
+  5: { maxRaw: 24, scaled: 15, label: "판매·협업", guide: "출시 일정과 판매 채널을 확인합니다" },
 };
 
 const COUNTRIES = [
@@ -355,19 +355,6 @@ function ProgressBar({ current, total }) {
   );
 }
 
-function SectionProgress({ current, sections }) {
-  return (
-    <div style={{ display: "flex", gap: 4, padding: "8px 20px 0" }}>
-      {sections.map((s, i) => (
-        <div key={i} style={{
-          flex: 1, height: 3, borderRadius: 2,
-          background: i < current ? C.accent : i === current ? `linear-gradient(90deg, ${C.accent}, ${C.border})` : C.border,
-          transition: "all 0.3s",
-        }} />
-      ))}
-    </div>
-  );
-}
 
 // ━━━━━━━━━━ MAIN APP ━━━━━━━━━━
 export default function App() {
@@ -449,18 +436,19 @@ function MainFlow() {
   const scrollTop = () => cRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   useEffect(() => { scrollTop(); }, [phase, qIdx]);
 
+  // 답을 고르기만 하고, 다음으로 넘어가는 건 하단 "다음" 버튼으로 명시적으로 한다
+  // (제조사 OS 앱.dc.html 03번 화면 기준 — 자동 넘김 없음)
   const pickAnswer = (qi, oi) => {
-    const wasAnswered = answers.hasOwnProperty(qi);
     setAnswers(prev => ({ ...prev, [qi]: oi }));
-    if (!wasAnswered) {
-      setTimeout(() => {
-        if (qi < QUESTIONS.length - 1) {
-          setAnim(true);
-          setTimeout(() => { setQIdx(i => i + 1); setAnim(false); }, 200);
-        } else {
-          setPhase("result");
-        }
-      }, 320);
+  };
+
+  const nextQuestion = () => {
+    if (!answers.hasOwnProperty(qIdx)) return;
+    if (qIdx < QUESTIONS.length - 1) {
+      setAnim(true);
+      setTimeout(() => { setQIdx(i => i + 1); setAnim(false); }, 200);
+    } else {
+      setPhase("result");
     }
   };
 
@@ -725,74 +713,76 @@ function MainFlow() {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: QUIZ ━━━━━━━━━━
+  // ━━━━━━━━━━ PHASE: QUIZ (제조사 OS 앱.dc.html · 03 진단 기준) ━━━━━━━━━━
   if (phase === "quiz") {
     const q = QUESTIONS[qIdx];
-    const sections = [...new Set(QUESTIONS.map(q => q.sectionNum))];
-    const currentSectionIdx = sections.indexOf(q.sectionNum);
-    const isNewSection = qIdx === 0 || QUESTIONS[qIdx - 1].sectionNum !== q.sectionNum;
+    const guide = SECTION_WEIGHTS[q.sectionNum]?.guide || "";
+    const answeredCount = Object.keys(answers).length;
+    const isAnswered = answers.hasOwnProperty(qIdx);
 
     return (
-      <div style={wrap}>
+      <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
-        <div style={hdr}>
-          <button onClick={goBackQuiz} style={backBtn}>←</button>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{qIdx + 1} / {QUESTIONS.length}</div>
-          <div style={{ width: 32 }} />
+        <div style={{ flex: "none", padding: "10px 20px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={goBackQuiz} style={{
+              width: 36, height: 36, border: 0, borderRadius: 12, background: "#fff",
+              color: "#434343", fontSize: 18, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
+            }}>‹</button>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#434343" }}>맞춤 진단</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#9A9A9E" }}>{qIdx + 1} / {QUESTIONS.length}</div>
+          </div>
+          <div style={{ height: 6, borderRadius: 99, background: "#E4E4E4", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 99, background: C.accent, transition: "width .45s cubic-bezier(.2,.8,.3,1)", width: `${((qIdx + 1) / QUESTIONS.length) * 100}%` }} />
+          </div>
         </div>
-        <SectionProgress current={currentSectionIdx} sections={sections} />
         <div ref={cRef} style={{
-          ...body, padding: "24px 20px",
+          flex: 1, overflowY: "auto", padding: "8px 20px 20px",
           opacity: anim ? 0 : 1, transform: anim ? "translateX(20px)" : "none",
           transition: "all 0.2s ease",
         }}>
-          {/* Section Badge */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "5px 14px", borderRadius: 100, marginBottom: 16,
-            background: C.accentLight, color: C.accent,
-            fontSize: 12, fontWeight: 600,
-          }}>
-            {q.section}
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", color: C.accent, marginBottom: 8 }}>
+            {`SECTION ${q.sectionNum} · ${q.section}`.toUpperCase()}
           </div>
-
-          <h2 style={{
-            fontSize: 20, fontWeight: 700, lineHeight: 1.5,
-            color: C.text, margin: "0 0 24px", letterSpacing: -0.5,
-          }}>{q.question}</h2>
+          <div style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.32, letterSpacing: -0.9, color: "#111", marginBottom: 6 }}>{q.question}</div>
+          {guide && <div style={{ fontSize: 14, color: "#8A8A8E", marginBottom: 20 }}>{guide}</div>}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {q.options.map((opt, i) => {
               const sel = answers[qIdx] === i;
               return (
-                <button key={i}
-                  onClick={() => pickAnswer(qIdx, i)}
-                  style={{
-                    width: "100%", padding: "16px 18px", textAlign: "left",
-                    border: `1.5px solid ${sel ? C.accent : C.border}`,
-                    borderRadius: 14, cursor: "pointer",
-                    background: sel ? C.accentLight : C.surface,
-                    fontSize: 14, fontFamily: FONT, lineHeight: 1.5,
-                    color: sel ? C.accent : C.text,
-                    fontWeight: sel ? 600 : 400,
-                    transition: "all 0.15s",
-                    boxShadow: sel ? `0 2px 12px ${C.accent}18` : "none",
-                  }}
-                >{opt.text}</button>
+                <button key={i} onClick={() => pickAnswer(qIdx, i)} style={{
+                  textAlign: "left", borderRadius: 18, padding: "18px 18px", cursor: "pointer", fontFamily: FONT,
+                  display: "flex", alignItems: "center", gap: 14, transition: "all .16s",
+                  background: sel ? "#FDF1EC" : "#fff", border: sel ? "1.5px solid #EA5C2A" : "1.5px solid transparent",
+                  boxShadow: sel ? "none" : "0 1px 2px rgba(0,0,0,.05)",
+                }}>
+                  <span style={{
+                    width: 26, height: 26, flex: "none", borderRadius: 99, display: "grid", placeItems: "center",
+                    fontSize: 13, fontWeight: 800, color: sel ? "#fff" : "#8A8A8E", background: sel ? C.accent : "#F1F1F2",
+                  }}>{sel ? "✓" : i + 1}</span>
+                  <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.4, lineHeight: 1.45, color: sel ? "#7A3520" : "#111" }}>{opt.text}</span>
+                </button>
               );
             })}
           </div>
-          {/* Next button for already-answered questions */}
-          {answers.hasOwnProperty(qIdx) && (
-            <div style={{ padding: "16px 0 0" }}>
-              <button onClick={() => {
-                if (qIdx < QUESTIONS.length - 1) {
-                  setAnim(true);
-                  setTimeout(() => { setQIdx(i => i + 1); setAnim(false); }, 200);
-                } else { setPhase("result"); }
-              }} style={btn1}>다음</button>
+        </div>
+        <div style={{ flex: "none", padding: "14px 20px 10px", background: "#fff", borderTop: "1px solid #E4E4E4", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>작성률</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: "#111", letterSpacing: -0.6 }}>{Math.round((answeredCount / QUESTIONS.length) * 100)}%</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>{answeredCount}/{QUESTIONS.length}</span>
             </div>
-          )}
+            <div style={{ height: 5, borderRadius: 99, background: "#E4E4E4", overflow: "hidden" }}>
+              <div style={{ height: "100%", background: C.accent, transition: "width .5s cubic-bezier(.2,.8,.3,1)", width: `${(answeredCount / QUESTIONS.length) * 100}%` }} />
+            </div>
+          </div>
+          <button onClick={nextQuestion} disabled={!isAnswered} style={{
+            height: 50, padding: "0 22px", border: 0, borderRadius: 16, color: "#fff", fontSize: 15, fontWeight: 800,
+            cursor: isAnswered ? "pointer" : "default", fontFamily: FONT, letterSpacing: -0.4, transition: "all .2s",
+            background: isAnswered ? C.accent : "#D4D4D6",
+          }}>{qIdx === QUESTIONS.length - 1 ? "결과 보기" : "다음"}</button>
         </div>
       </div>
     );
