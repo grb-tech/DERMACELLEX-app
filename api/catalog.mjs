@@ -23,25 +23,37 @@ export default async function handler(req, res) {
   if (!TOKEN) return res.status(500).json({ success: false, error: 'NOTION_TOKEN not set' });
 
   try {
-    const result = await notionCall(TOKEN, 'POST', `/databases/${DB.CATALOG}/query`, {
-      filter: {
-        and: [
-          { property: '활성', checkbox: { equals: true } },
-          { property: '고객 앱 노출', checkbox: { equals: true } },
-        ],
-      },
-      sorts: [{ property: '정렬 순서', direction: 'ascending' }],
-      page_size: 100,
-    });
+    // 전체 213개 이상 → 100건짜리 한 페이지로는 절반 넘게 누락된다. has_more가 끝날 때까지 이어서 받는다.
+    const pages = [];
+    let cursor = undefined;
+    do {
+      const result = await notionCall(TOKEN, 'POST', `/databases/${DB.CATALOG}/query`, {
+        filter: {
+          and: [
+            { property: '활성', checkbox: { equals: true } },
+            { property: '고객 앱 노출', checkbox: { equals: true } },
+          ],
+        },
+        sorts: [{ property: '정렬 순서', direction: 'ascending' }],
+        page_size: 100,
+        ...(cursor ? { start_cursor: cursor } : {}),
+      });
+      pages.push(...(result.results || []));
+      cursor = result.has_more ? result.next_cursor : undefined;
+    } while (cursor);
 
-    const items = (result.results || []).map(p => {
+    const items = pages.map(p => {
       const props = p.properties || {};
+      // '제조 품목명'은 "[대분류] 제품군 | 제형" 형태의 내부 정리용 제목이라 고객 화면에는
+      // 어색하다 — 실제로 고객이 고르는 단위인 '제형'을 표시 이름으로 쓴다.
+      const form = props['제형']?.rich_text?.map(t => t.plain_text).join('') || '';
+      const rawTitle = props['제조 품목명']?.title?.map(t => t.plain_text).join('') || '';
       return {
         id: p.id,
-        name: props['제조 품목명']?.title?.map(t => t.plain_text).join('') || '',
+        name: form || rawTitle,
         category: props['대분류']?.select?.name || '',
         group: props['제품군']?.select?.name || '',
-        form: props['제형']?.rich_text?.map(t => t.plain_text).join('') || '',
+        form,
         status: props['제조 가능 상태']?.select?.name || '',
         desc: props['간단한 제형 설명']?.rich_text?.map(t => t.plain_text).join('') || '',
         image: extractImage(p, props),

@@ -5,7 +5,7 @@
 // 2026-09-08: 노션 실제 스키마를 다시 확인해보니 '미팅 일시'라는 속성은 존재하지 않았다(오기).
 // 실제 속성명인 '희망 미팅일1' · '희망 미팅일2'(둘 다 date 타입) 기준으로 재작성.
 
-import { DB, createPage, notionCall, cors, title, select } from './_notion.mjs';
+import { DB, createPage, notionCall, queryDb, cors, title, select } from './_notion.mjs';
 import { issueAccessCode } from './_access.mjs';
 
 export default async function handler(req, res) {
@@ -25,6 +25,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: '희망 미팅일(1안)은 필수입니다.' });
     }
 
+    // 이 문의에 이미 작성된 제품개발의뢰서(06 화면에서 미리 제출됨)가 있으면 상담 · 미팅에도 연결한다.
+    let devreqIds = [];
+    try {
+      const devreqs = await queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 문의 관리', relation: { contains: inquiryId } });
+      devreqIds = (devreqs.results || []).map(p => p.id);
+    } catch (e) {
+      console.error('제품개발의뢰서 조회 실패:', e.message);
+    }
+
     const properties = {
       '미팅명': title(`${businessName || '고객'} 1차 상담`),
       '미팅구분': select('1차 상담'),
@@ -33,6 +42,7 @@ export default async function handler(req, res) {
       '고객 담당자': { relation: [{ id: contactId }] },
       '제조 문의 관리': { relation: [{ id: inquiryId }] },
       ...(clientId ? { '제조 의뢰 거래처': { relation: [{ id: clientId }] } } : {}),
+      ...(devreqIds.length ? { '📋 제품개발의뢰서': { relation: devreqIds.map(id => ({ id })) } } : {}),
     };
     if (meetingDate2 && meetingTime2) {
       properties['희망 미팅일2'] = { date: { start: `${meetingDate2}T${meetingTime2}:00+09:00` } };

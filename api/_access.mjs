@@ -1,8 +1,8 @@
 // 전용 페이지 접근 코드 발급 공통 로직 — /api/meeting(최초 발급)과 /api/portal-resend(재발급)이 함께 쓴다.
-// 2026-09-08: 담당자가 노션에서 코드를 평문으로 바로 확인해야 한다는 요청에 따라, '코트 표시값'에
+// 2026-09-08: 담당자가 노션에서 코드를 평문으로 바로 확인해야 한다는 요청에 따라, '코드 표시값'에
 // 마스킹 대신 원본 6자리 코드를 그대로 저장한다(노션은 내부 직원만 접근 가능한 워크스페이스이므로
 // 고객에게 노출될 위험은 없다 — 완전한 비공개 저장은 아니라는 점만 감안할 것).
-// 검증은 여전히 해시(코트 검증값)로 하므로, 로그인 로직은 이 변경의 영향을 받지 않는다.
+// 검증은 여전히 해시(코드 검증값)로 하므로, 로그인 로직은 이 변경의 영향을 받지 않는다.
 // 이메일에는 코드와 함께 클릭 한 번으로 로그인되는 "바로가기" 링크도 넣어 직접 입력을 보완한다.
 
 import crypto from 'crypto';
@@ -52,8 +52,8 @@ export async function issueAccessCode(TOKEN, { inquiryId, clientId, contactId, b
     '제조 문의 관리': { relation: [{ id: inquiryId }] },
     ...(clientId ? { '제조 의뢰 거래처': { relation: [{ id: clientId }] } } : {}),
     '의뢰 담당자': { relation: [{ id: contactId }] },
-    '코트 표시값': text(code),
-    '코트 검증값': text(verifyValue),
+    '코드 표시값': text(code),
+    '코드 검증값': text(verifyValue),
     '코드 상태': { status: { name: '진행 중' } },
     '발급일': { date: { start: today } },
     ...(sendResult === '발송 성공' ? { '전송일': { date: { start: today } } } : {}),

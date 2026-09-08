@@ -363,6 +363,130 @@ function UField({ label, req, children }) {
   );
 }
 
+// 06 기획개발의뢰서 — 노션 "📋 제품개발의뢰서" 전체 스키마 기준 필드 구성(md 문서 5-2절).
+// 4개 그룹(=화면 내 4단계)으로 나누고, 각 필드는 공용 DevField 렌더러 하나로 그린다.
+const EFFECT_OPTIONS = ["미백", "홍조", "색소침착", "피부톤(밝기)", "피부톤(투명)", "광채", "진정(수딩)", "장벽개선", "리페어", "수분보습", "쿨링", "재생", "주름(탄력)", "볼륨(리프팅)", "항산화", "모공(피부결)", "피부두께", "유분조절", "커버", "노폐물제거"];
+const DEV_FIELD_GROUPS = [
+  {
+    title: "기본 정보",
+    fields: [
+      { key: "productName", label: "제품명 / 가칭", type: "text", req: true },
+      { key: "volume", label: "내용량", type: "text", placeholder: "예: 50ml" },
+      { key: "quantity", label: "초도 희망수량", type: "text", placeholder: "예: 3000", numeric: true },
+      { key: "targetPrice", label: "목표 원가", type: "text", placeholder: "예: 3,000원(부자재 포함)" },
+      { key: "devType", label: "개발유형", type: "select", options: ["신규 제형 개발", "기존 제형 응용", "타겟 제품 벤치마킹", "기존 제품 리뉴얼", "기타"] },
+      { key: "composition", label: "제품구성", type: "select", options: ["단품", "패키지"] },
+    ],
+  },
+  {
+    title: "효능 · 사용감",
+    fields: [
+      { key: "mainEffect", label: "메인효능", type: "select", options: EFFECT_OPTIONS },
+      { key: "subEffect", label: "서브효능", type: "multiselect", options: EFFECT_OPTIONS },
+      { key: "targetEffect", label: "타겟 효능 서술", type: "textarea" },
+      { key: "formulation", label: "타겟 사용감 / 제형", type: "text" },
+      { key: "requiredFeel", label: "필수 사용감", type: "text" },
+      { key: "gender", label: "타겟 성별", type: "select", options: ["남성", "여성", "남녀공용"] },
+      { key: "ageGroup", label: "타겟 연령층", type: "select", options: ["10~20대", "20~30대", "30~40대", "40대 이상", "전 연령"] },
+      { key: "targetSkin", label: "타겟 피부 고민", type: "text" },
+      { key: "targetSkinDesc", label: "타겟 피부 서술", type: "textarea" },
+      { key: "finish", label: "마무리감", type: "select", options: ["산뜻", "촉촉", "글로우", "보송", "리치", "타겟품동일", "직접작성"] },
+      { key: "viscosity", label: "점도 · 텍스처", type: "select", options: ["가벼움", "중간", "리치함", "특수텍스처", "타겟품동일", "직접작성"] },
+    ],
+  },
+  {
+    title: "색상 · 향 · 원료",
+    fields: [
+      { key: "color", label: "내용물 색상", type: "select", options: ["무색", "백색", "원료고유색", "지정색", "제조사제안"] },
+      { key: "transparency", label: "내용물 투명도", type: "select", options: ["투명", "반투명", "불투명", "제조사제안"] },
+      { key: "scent", label: "향", type: "multiselect", options: ["무향저취", "천연향료", "합성향료", "블렌딩", "지정향", "은은", "보통", "강함", "제조사제안"] },
+      { key: "ph", label: "희망 pH", type: "select", options: ["산성(3.0~4.5)", "약산성(4.5~6.5)", "중성(6.5~7.5)", "약알칼리성(7.5~9.0)", "강알칼리성(9.0이상)", "사용감에따라적용"] },
+      { key: "particle", label: "입자 · 고형 소재", type: "select", options: ["미적용", "비드", "캡슐", "스크럽입자", "소금슈가", "허브식물분말", "꽃잎식물조각", "제조사제안", "기타"] },
+      { key: "particleDetail", label: "입자 · 고형 상세", type: "text", showIf: f => f.particle && f.particle !== "미적용" },
+      { key: "ingredients", label: "필수 적용 원료", type: "text", placeholder: "원료명 / 희망함량 또는 ppm" },
+      { key: "excludeIngredients", label: "제외 희망 원료", type: "text" },
+      { key: "functional", label: "기능성화장품", type: "select", options: ["비기능성", "미백", "주름개선", "자외선차단", "여드름성피부완화", "미백+주름개선", "미백+주름+자외선차단", "기타"] },
+      { key: "safety", label: "성분 안전성 기준", type: "multiselect", options: ["PEG FREE", "20가지 주의성분 FREE", "알러지유발성분 FREE", "인공향료 FREE", "인공색소 FREE", "효능위주", "해당없음"] },
+    ],
+  },
+  {
+    title: "포장 · 수출 · 일정",
+    fields: [
+      { key: "packaging", label: "포장 형태", type: "text", placeholder: "예: 드로퍼 보틀 30ml" },
+      { key: "spec", label: "규격", type: "text", placeholder: "패키지 입수 수량 ea" },
+      { key: "suppliedMaterial", label: "사급 부자재", type: "textarea" },
+      { key: "turnkeyMaterial", label: "턴키 부자재", type: "textarea" },
+      { key: "otherMaterialCond", label: "기타 부자재 조건", type: "textarea" },
+      { key: "targetContainerUrl", label: "타겟 용기 URL", type: "url" },
+      { key: "reference", label: "레퍼런스(타겟 제품 · 샘플) URL", type: "url" },
+      { key: "countries", label: "판매 예정 국가", type: "multiselect", options: ["한국", "중국", "미국", "일본", "EU", "동남아", "중동", "기타"] },
+      { key: "exportRegs", label: "수출 규제 기준", type: "multiselect", options: ["한국MFDS", "중국NMPA", "일본PMDA", "미국MoCRA", "유럽CPNP", "기타"] },
+      { key: "nmpaEffect", label: "NMPA 효능", type: "text", showIf: f => (f.exportRegs || []).includes("중국NMPA") },
+      { key: "certs", label: "인증 기준", type: "multiselect", options: ["Vegan", "COSMOS NATURAL", "COSMOS ORGANIC", "HALAL", "USDA Organic", "해당없음", "기타"] },
+      { key: "countryLimits", label: "국가별 제한사항", type: "textarea" },
+      { key: "launchDate", label: "희망 런칭 일정", type: "date" },
+      { key: "additionalNotes", label: "추가 요청사항", type: "textarea" },
+    ],
+  },
+];
+
+function Chip({ label, sel, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      height: 36, padding: "0 13px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
+      background: sel ? "#111" : "#F4F4F5", color: sel ? "#fff" : "#434343", border: "1.5px solid transparent", whiteSpace: "nowrap",
+    }}>{label}</button>
+  );
+}
+
+function DevField({ f, value, onChange }) {
+  if (f.type === "text" || f.type === "url") {
+    return (
+      <UField label={f.label} req={f.req}>
+        <input value={value || ""} onChange={e => onChange(f.key, f.numeric ? e.target.value.replace(/\D/g, "") : e.target.value)} placeholder={f.placeholder || ""} style={uInpBase} />
+      </UField>
+    );
+  }
+  if (f.type === "textarea") {
+    return (
+      <UField label={f.label} req={f.req}>
+        <textarea value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={{ ...uInpBase, minHeight: 64, resize: "vertical" }} />
+      </UField>
+    );
+  }
+  if (f.type === "date") {
+    return (
+      <UField label={f.label}>
+        <input type="date" value={value || ""} onChange={e => onChange(f.key, e.target.value)} style={uInpBase} />
+      </UField>
+    );
+  }
+  if (f.type === "select") {
+    return (
+      <UField label={f.label}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {f.options.map(o => <Chip key={o} label={o} sel={value === o} onClick={() => onChange(f.key, value === o ? "" : o)} />)}
+        </div>
+      </UField>
+    );
+  }
+  if (f.type === "multiselect") {
+    const arr = value || [];
+    return (
+      <UField label={f.label}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {f.options.map(o => {
+            const sel = arr.includes(o);
+            return <Chip key={o} label={o} sel={sel} onClick={() => onChange(f.key, sel ? arr.filter(v => v !== o) : [...arr, o])} />;
+          })}
+        </div>
+      </UField>
+    );
+  }
+  return null;
+}
+const uInpBase = { width: "100%", border: 0, borderBottom: "1.5px solid #E4E4E4", background: "transparent", fontSize: 15, fontWeight: 700, color: "#111", padding: "0 0 9px", outline: "none", fontFamily: FONT };
+
 function ProgressBar({ current, total }) {
   return (
     <div style={{ display: "flex", gap: 3, padding: "6px 20px 0" }}>
@@ -432,6 +556,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // 06 기획개발의뢰서(간이형) — 선택한 품목별 상세 입력 폼과 현재 작성 중인 품목 인덱스
   const [devForms, setDevForms] = useState([]);
   const [devIdx, setDevIdx] = useState(0);
+  const [devStep, setDevStep] = useState(0);
   // 전용 페이지 접근 코드(상담 신청 시 1회 발급) · 로그인 입력값 · 로그인 후 받아온 전용 페이지 데이터
   const [accessCode, setAccessCode] = useState("");
   const [codeEmailed, setCodeEmailed] = useState(false);
@@ -441,6 +566,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [portalErr, setPortalErr] = useState("");
   const [portalMsg, setPortalMsg] = useState("");
   const [portalData, setPortalData] = useState(null);
+  const [portalSynced, setPortalSynced] = useState(null);
   const cRef = useRef(null);
 
   useEffect(() => {
@@ -627,9 +753,17 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     if (pickedItems.length === 0) return;
     setDevForms(pickedItems.map(it => ({
       itemId: it.id, productName: it.name, productType: it.category, formulation: it.form,
-      volume: "", quantity: "", targetPrice: "", targetEffect: "", ingredients: "", packaging: "", reference: "", additionalNotes: "",
+      volume: "", quantity: "", targetPrice: "", devType: "", composition: "",
+      mainEffect: "", subEffect: [], targetEffect: "", requiredFeel: "", gender: "", ageGroup: "",
+      targetSkin: "", targetSkinDesc: "", finish: "", viscosity: "",
+      color: "", transparency: "", scent: [], ph: "", particle: "", particleDetail: "",
+      ingredients: "", excludeIngredients: "", functional: "", safety: [],
+      packaging: "", spec: "", suppliedMaterial: "", turnkeyMaterial: "", otherMaterialCond: "",
+      targetContainerUrl: "", reference: "", countries: [], exportRegs: [], nmpaEffect: "",
+      certs: [], countryLimits: "", launchDate: "", additionalNotes: "",
     })));
     setDevIdx(0);
+    setDevStep(0);
     setPhase("devdetail");
   };
   const updateDevField = (idx, field, value) => {
@@ -711,6 +845,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "인증에 실패했습니다.");
       setPortalData(result);
+      setPortalSynced(new Date());
       setSubmitSt(null);
       setPhase("portal");
     } catch (err) {
@@ -719,6 +854,27 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     }
   };
   const submitPortalLogin = () => attemptPortalLogin(portalEmail, portalCode);
+
+  // 담당자가 노션에서 '미팅 확정일' 등을 바꾸면, 전용 페이지를 켜둔 채로도 반영되도록 조용히 주기적으로
+  // 다시 불러온다(Notion API에는 실시간 웹훅이 없어 폴링으로 대체 — 화면 깜빡임 없이 데이터만 갱신).
+  const refreshPortalData = async () => {
+    if (!portalEmail || !/^\d{6}$/.test(portalCode)) return;
+    try {
+      const res = await fetch("/api/portal-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim() }),
+      });
+      const result = await res.json();
+      if (result.success) { setPortalData(result); setPortalSynced(new Date()); }
+    } catch {}
+  };
+  useEffect(() => {
+    if (phase !== "portal") return;
+    const id = setInterval(refreshPortalData, 15000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   // 이메일 "전용 페이지 바로가기" 링크로 들어온 경우 코드를 직접 입력하지 않아도 자동 로그인한다.
   useEffect(() => {
@@ -1270,7 +1426,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
               <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
             </span>
-            <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[it.category, it.group, it.form].filter(Boolean).join(" · ")}</span>
+            <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {[it.category, it.group].filter(v => v && v !== it.name).join(" · ")}
+            </span>
             {it.desc && <span style={{ fontSize: 12, color: "#B0B0B4", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.desc}</span>}
           </span>
           <span style={{
@@ -1393,14 +1551,24 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: DEVDETAIL (제조사 OS 앱.dc.html · 06 기획개발의뢰서 — 간이형) ━━━━━━━━━━
-  // 원본 디자인은 콘셉트 키워드 · 지정 원료 · 용기 선택 등 화려한 4단계 마법사이지만 아직 그 UI는
-  // 없다. 우선 품목별로 실제 노션 제품개발의뢰서 속성에 매핑되는 항목만 순서대로 작성하게 하는
-  // 최소 버전이다 — "05 품목 선택 → 06 상세 작성 → 07 상담 일정" 순서를 맞추는 것이 이번 목적.
+  // ━━━━━━━━━━ PHASE: DEVDETAIL (제조사 OS 앱.dc.html · 06 기획개발의뢰서 — 노션 전체 필드 기준) ━━━━━━━━━━
+  // "05 품목 선택 → 06 상세 작성(4단계) → 07 상담 일정" 순서. 원본 디자인의 화려한 원료·용기
+  // 비주얼 피커까지는 아니지만, 노션 제품개발의뢰서에 실제로 있는 입력 가능 속성은 모두 담았다.
   if (phase === "devdetail" && devForms.length > 0) {
     const d = devForms[devIdx];
-    const isLast = devIdx === devForms.length - 1;
-    const ta = { ...uInp, minHeight: 64, resize: "vertical" };
+    const isLastItem = devIdx === devForms.length - 1;
+    const isLastStep = devStep === DEV_FIELD_GROUPS.length - 1;
+    const group = DEV_FIELD_GROUPS[devStep];
+
+    const goPrev = () => {
+      if (devStep > 0) setDevStep(s => s - 1);
+      else if (devIdx > 0) { setDevIdx(i => i - 1); setDevStep(DEV_FIELD_GROUPS.length - 1); }
+    };
+    const goNext = () => {
+      if (!isLastStep) { setDevStep(s => s + 1); return; }
+      if (!isLastItem) { setDevIdx(i => i + 1); setDevStep(0); return; }
+      submitDevDetails();
+    };
 
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
@@ -1414,7 +1582,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             {devForms.map((f, i) => {
               const active = i === devIdx;
               return (
-                <button key={i} onClick={() => setDevIdx(i)} style={{
+                <button key={i} onClick={() => { setDevIdx(i); setDevStep(0); }} style={{
                   flex: "none", borderRadius: 14, padding: "9px 13px", cursor: "pointer", fontFamily: FONT,
                   textAlign: "left", background: active ? "#111" : "#fff",
                   border: active ? "1.5px solid #111" : "1.5px solid transparent",
@@ -1425,40 +1593,42 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               );
             })}
           </div>
+          <div style={{ display: "flex", gap: 6, paddingBottom: 12 }}>
+            {DEV_FIELD_GROUPS.map((g, i) => (
+              <button key={g.title} onClick={() => setDevStep(i)} style={{
+                flex: 1, display: "flex", flexDirection: "column", gap: 7, border: 0, background: "transparent",
+                cursor: "pointer", fontFamily: FONT, padding: 0, textAlign: "left",
+              }}>
+                <span style={{ height: 4, borderRadius: 99, background: i <= devStep ? C.accent : "#E4E4E4", transition: "background .3s" }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: i === devStep ? "#111" : "#B0B0B4" }}>{g.title}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "6px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={card2}>
-            <UField label="제품명 / 가칭" req>
-              <input value={d.productName} onChange={e => updateDevField(devIdx, "productName", e.target.value)} style={uInp} />
-            </UField>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <UField label="내용량"><input value={d.volume} onChange={e => updateDevField(devIdx, "volume", e.target.value)} placeholder="예: 50ml" style={uInp} /></UField>
-              <UField label="초도 희망수량"><input value={d.quantity} onChange={e => updateDevField(devIdx, "quantity", e.target.value.replace(/\D/g, ""))} placeholder="예: 3000" style={uInp} /></UField>
-            </div>
-            <UField label="목표 원가"><input value={d.targetPrice} onChange={e => updateDevField(devIdx, "targetPrice", e.target.value)} placeholder="예: 3,000원" style={uInp} /></UField>
-            <UField label="타겟 효능 · 사용감"><textarea value={d.targetEffect} onChange={e => updateDevField(devIdx, "targetEffect", e.target.value)} placeholder="예: 수분 진정, 산뜻한 마무리감" style={ta} /></UField>
-            <UField label="필수 적용 원료"><input value={d.ingredients} onChange={e => updateDevField(devIdx, "ingredients", e.target.value)} placeholder="예: 판테놀 5%" style={uInp} /></UField>
-            <UField label="포장 형태"><input value={d.packaging} onChange={e => updateDevField(devIdx, "packaging", e.target.value)} placeholder="예: 드로퍼 보틀 30ml" style={uInp} /></UField>
-            <UField label="레퍼런스 (URL)"><input value={d.reference} onChange={e => updateDevField(devIdx, "reference", e.target.value)} placeholder="https://..." style={uInp} /></UField>
-            <UField label="추가 요청사항"><textarea value={d.additionalNotes} onChange={e => updateDevField(devIdx, "additionalNotes", e.target.value)} style={ta} /></UField>
+            {group.fields.filter(f => !f.showIf || f.showIf(d)).map(f => (
+              <DevField key={f.key} f={f} value={d[f.key]} onChange={(k, v) => updateDevField(devIdx, k, v)} />
+            ))}
           </div>
         </div>
         <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4", display: "flex", gap: 10 }}>
-          {devIdx > 0 && (
-            <button onClick={() => setDevIdx(i => i - 1)} style={{
+          {(devStep > 0 || devIdx > 0) && (
+            <button onClick={goPrev} style={{
               height: 52, padding: "0 20px", border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff",
               color: "#434343", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
             }}>이전</button>
           )}
           <button
-            onClick={() => isLast ? submitDevDetails() : setDevIdx(i => i + 1)}
+            onClick={goNext}
             disabled={!d.productName.trim() || submitSt === "loading"}
             style={{
               flex: 1, height: 52, border: 0, borderRadius: 16, background: submitSt === "error" ? C.error : "#111",
               color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
               opacity: (!d.productName.trim() || submitSt === "loading") ? 0.6 : 1,
             }}>
-            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : isLast ? `의뢰서 ${devForms.length}건 제출하고 상담 신청` : "다음 품목"}
+            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" :
+              !isLastStep ? "다음" : !isLastItem ? "다음 품목" : `의뢰서 ${devForms.length}건 제출하고 상담 신청`}
           </button>
         </div>
       </div>
@@ -1487,7 +1657,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>1차 제조 상담 일정</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 상담 일정</div>
             <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>
               담당자 배정 예정 · 30분 · Zoom{form.willWriteDoc ? " · 개발의뢰서는 상담 후 별도 안내" : ""}
             </div>
@@ -1703,55 +1873,122 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     );
   }
 
-  // ━━━━━━━━━━ PHASE: PORTAL (md 문서 8장 "전용 페이지 구성" — 문의 · 미팅 · 제품개발의뢰서만 우선 노출) ━━━━━━━━━━
-  // 09~13번 화면(대시보드·가견적·계약·타임라인·알림)의 정식 디자인은 아직 없어, 표의 앞부분
-  // (문의 상태 · 미팅 · 제품개발의뢰서)만 담은 최소 버전이다. 진단 점수·등급·위험 플래그는
-  // /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
+  // ━━━━━━━━━━ PHASE: PORTAL (제조사 OS 앱.dc.html · 09 대시보드 기준) ━━━━━━━━━━
+  // 가견적 · 계약 · 제조 프로젝트(디자인 10~12번 화면)는 아직 DB 연동을 안 붙여서 "아직 없음"
+  // 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 · 등급 · 위험
+  // 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
   if (phase === "portal" && portalData) {
-    const { inquiry, meeting, products } = portalData;
-    const fmt = (d) => d ? new Date(d).toLocaleString("ko") : "-";
+    const { inquiry, client, contact, meeting, products } = portalData;
+    const fmt = (d) => d ? new Date(d).toLocaleString("ko", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
+    const STAGES = ["접수", "상담", "견적", "계약", "프로젝트 전환"];
+    const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
+    const openProducts = products.filter(p => p.status && p.status !== "완료").length;
+
+    let hero = { label: "다음 행동", title: "담당자 배정 대기", sub: "곧 담당자가 배정되어 안내드립니다.", cta: null };
+    if (meeting?.confirmed) {
+      hero = { label: "확정된 일정", title: "1차 상담", sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: "Zoom 접속", href: meeting.zoomLink } : null };
+    } else if (meeting) {
+      hero = { label: "다음 행동", title: "상담 일정 확정 대기", sub: "담당자가 확인 후 일정을 확정해 안내드립니다.", cta: null };
+    }
+
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{inquiry.name || "제조 문의"}</div>
-            <div style={{ fontSize: 13.5, color: C.accent, marginTop: 5, fontWeight: 700 }}>현재 상태 · {inquiry.status || "-"}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 13, color: "#8A8A8E", fontWeight: 700 }}>{[client?.name, contact?.name].filter(Boolean).join(" · ") || "고객"}</div>
+              <div style={{ fontSize: 23, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 3 }}>{inquiry.status || "-"}</div>
+            </div>
+            <button onClick={refreshPortalData} title="새로고침" style={{
+              width: 42, height: 42, borderRadius: 14, background: "#fff", border: 0, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,.06)", position: "relative",
+            }}>
+              <span style={{ fontSize: 16 }}>↻</span>
+              <span style={{ position: "absolute", top: 8, right: 9, width: 7, height: 7, borderRadius: 99, background: C.accent }} />
+            </button>
           </div>
 
-          <div style={card2}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>상담 · 미팅</div>
-            {meeting ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  ["상태", meeting.status || "-"],
-                  ["미팅 확정일", meeting.confirmed ? fmt(meeting.confirmed) : "담당자 확정 대기중"],
-                  ["희망 1안", fmt(meeting.wish1)],
-                  ["희망 2안", meeting.wish2 ? fmt(meeting.wish2) : "-"],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
-                    <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{k}</span>
-                    <span style={{ color: "#111", fontWeight: 700 }}>{v}</span>
-                  </div>
-                ))}
-                {meeting.zoomLink && (
-                  <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{
-                    marginTop: 4, height: 44, borderRadius: 12, background: "#F4F4F5", color: "#111",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13.5, fontWeight: 800, textDecoration: "none",
-                  }}>Zoom 접속 링크</a>
-                )}
-              </div>
-            ) : <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>등록된 상담 일정이 없습니다.</div>}
+          <div style={{
+            borderRadius: 24, padding: 20, background: "linear-gradient(150deg,#EA5C2A,#C33F14)", color: "#fff",
+            boxShadow: "0 18px 34px -20px rgba(234,92,42,.9)", display: "flex", flexDirection: "column", gap: 4,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, opacity: 0.85 }}>{hero.label}</span>
+            <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.6, marginTop: 8 }}>{hero.title}</span>
+            <span style={{ fontSize: 13.5, opacity: 0.9, fontWeight: 600, marginTop: 2 }}>{hero.sub}</span>
+            {hero.cta && (
+              <a href={hero.cta.href} target="_blank" rel="noreferrer" style={{
+                marginTop: 14, height: 50, border: 0, borderRadius: 15, background: "#fff", color: "#C33F14",
+                fontSize: 15, fontWeight: 800, fontFamily: FONT, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+              }}>{hero.cta.label}</a>
+            )}
           </div>
 
-          <div style={card2}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>제품개발의뢰서</div>
-            {products.length > 0 ? products.map((p, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+          <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E" }}>{inquiry.uid}</span>}
+              <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1 }}>{inquiry.name || "제조개발 문의"}</span>
+            </div>
+            <div style={{ display: "flex", gap: 0 }}>
+              {STAGES.map((s, i) => (
+                <span key={s} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: "100%", height: 3, borderRadius: 99, background: i <= stageIdx ? "#111" : "#E4E4E4" }} />
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: i <= stageIdx ? "#111" : "#B0B0B4" }}>{s}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>기획개발의뢰서</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
+                {products.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
               </div>
-            )) : <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>작성된 개발의뢰서가 없습니다.</div>}
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: openProducts > 0 ? C.accent : "#8A8A8E", marginTop: 4 }}>
+                {openProducts > 0 ? `진행 중 ${openProducts}건` : products.length > 0 ? "전체 완료" : "작성된 의뢰서 없음"}
+              </div>
+            </div>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>가견적</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
+            </div>
+          </div>
+
+          <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
+          </div>
+
+          {meeting && (
+            <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", alignItems: "center", gap: 13 }}>
+              <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 800, flex: "none" }}>Z</span>
+              <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>
+                  {meeting.confirmed ? `1차 상담 · ${fmt(meeting.confirmed)}` : "1차 상담 · 일정 조율 중"}
+                </span>
+                <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? "Zoom 링크 확정" : meeting.status || "-"}</span>
+              </span>
+              {meeting.zoomLink && (
+                <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 800, color: C.accent, textDecoration: "none" }}>입장</a>
+              )}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div style={card2}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>제품개발의뢰서 목록</div>
+              {products.map((p, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", fontSize: 11.5, color: "#B0B0B4", fontWeight: 600, marginTop: 4 }}>
+            {portalSynced ? `마지막 업데이트 ${portalSynced.toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" })} · 15초마다 자동 새로고침` : ""}
           </div>
         </div>
       </div>

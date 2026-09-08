@@ -2,7 +2,7 @@
 // 같은 이메일을 기준으로 맞췄다(md 문서 13장 "고객 인증 방식"은 아직 미확정 사항으로 남아있음).
 //
 // 원본 코드를 저장하지 않으므로, 후보 접근 이력마다 같은 방식(sha256(code:제조문의ID))으로
-// 해시를 다시 계산해 '코트 검증값'과 비교하는 방식으로 검증한다.
+// 해시를 다시 계산해 '코드 검증값'과 비교하는 방식으로 검증한다.
 
 import crypto from 'crypto';
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         if (!inquiryId) continue;
         lastCandidate = rec;
         const expect = crypto.createHash('sha256').update(`${code}:${inquiryId}`).digest('hex');
-        const stored = plain(rec.properties?.['코트 검증값'], 'text');
+        const stored = plain(rec.properties?.['코드 검증값'], 'text');
         if (stored && stored === expect) { matched = { rec, inquiryId }; break; }
       }
       if (matched) break;
@@ -66,12 +66,17 @@ export default async function handler(req, res) {
     }).catch(() => {});
 
     const inquiryId = matched.inquiryId;
-    const inquiryPage = await notionCall(TOKEN, 'GET', `/pages/${inquiryId}`);
-    const meetings = await queryDb(TOKEN, DB.MEETING,
-      { property: '제조 문의 관리', relation: { contains: inquiryId } },
-      [{ timestamp: 'created_time', direction: 'descending' }]);
-    const devreqs = await queryDb(TOKEN, DB.DEVREQUEST,
-      { property: '제조 문의 관리', relation: { contains: inquiryId } });
+    const clientId = matched.rec.properties?.['제조 의뢰 거래처']?.relation?.[0]?.id;
+    const contactId = matched.rec.properties?.['의뢰 담당자']?.relation?.[0]?.id;
+
+    const [inquiryPage, meetings, devreqs, clientPage, contactPage] = await Promise.all([
+      notionCall(TOKEN, 'GET', `/pages/${inquiryId}`),
+      queryDb(TOKEN, DB.MEETING, { property: '제조 문의 관리', relation: { contains: inquiryId } },
+        [{ timestamp: 'created_time', direction: 'descending' }]),
+      queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 문의 관리', relation: { contains: inquiryId } }),
+      clientId ? notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null) : Promise.resolve(null),
+      contactId ? notionCall(TOKEN, 'GET', `/pages/${contactId}`).catch(() => null) : Promise.resolve(null),
+    ]);
 
     const latestMeeting = (meetings.results || [])[0];
 
@@ -79,7 +84,14 @@ export default async function handler(req, res) {
       success: true,
       inquiry: {
         name: plain(inquiryPage.properties?.['제조 문의명'], 'title'),
+        uid: plain(inquiryPage.properties?.['고유 ID'], 'text'),
         status: plain(inquiryPage.properties?.['상태'], 'status'),
+      },
+      client: {
+        name: clientPage ? plain(clientPage.properties?.['법인 · 개인명'], 'title') : '',
+      },
+      contact: {
+        name: contactPage ? plain(contactPage.properties?.['담당자명'], 'title') : '',
       },
       meeting: latestMeeting ? {
         status: plain(latestMeeting.properties?.['상태'], 'status'),
