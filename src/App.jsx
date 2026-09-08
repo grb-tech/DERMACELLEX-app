@@ -300,26 +300,22 @@ const SECTION_WEIGHTS = {
   5: { maxRaw: 24, scaled: 15, label: "판매·협업", guide: "출시 일정과 판매 채널을 확인합니다" },
 };
 
-// 07 상담 일정 화면 — 다음 영업일 중 4개 슬롯을 골라 보여준다 (제조사 OS 앱.dc.html 기준)
-const DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
-function upcomingSlots(count = 4) {
-  const times = ["14:00", "10:30", "15:30", "11:00"];
-  const slots = [];
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  while (slots.length < count) {
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) {
-      slots.push({
-        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-        time: times[slots.length % times.length],
-        dow: DOW_KO[dow],
-        day: d.getDate(),
-      });
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  return slots;
+// 07 상담 일정 화면 — 09:00~18:00, 30분 단위 시간 옵션
+const TIME_SLOTS = Array.from({ length: 19 }, (_, i) => {
+  const h = 9 + Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return h >= 18 && m === "30" ? null : `${h}:${m}`;
+}).filter(Boolean);
+
+// 노션 "상담 · 미팅" DB의 '미팅 확정일'에 이미 값이 있는 슬롯(담당자가 확정한 일정)은
+// 고객이 같은 날짜 · 시간을 다시 희망 일정으로 고르지 못하게 막는다.
+function isSlotBooked(bookedList, dateStr, timeStr) {
+  if (!dateStr || !timeStr) return false;
+  return (bookedList || []).some(iso => {
+    if (!iso || iso.slice(0, 10) !== dateStr) return false;
+    if (iso.length <= 10) return true; // 시간 없이 날짜만 확정된 경우 그 날 전체를 막는다
+    return iso.slice(11, 16) === timeStr;
+  });
 }
 
 const COUNTRIES = [
@@ -421,8 +417,16 @@ function MainFlow() {
   const [submitSt, setSubmitSt] = useState(null);
   // 02 고객 정보 등록 시 노션에 만들어지는 거래처 · 담당자 · 제조 문의 ID (이후 진단·미팅이 여기에 연결됨)
   const [reg, setReg] = useState(null);
-  const [showManualDate, setShowManualDate] = useState(false);
+  // 노션에 이미 '미팅 확정일'이 등록된 슬롯(ISO 날짜/일시 문자열) — 07 화면에서 선택 못하게 막는다
+  const [bookedSlots, setBookedSlots] = useState([]);
   const cRef = useRef(null);
+
+  useEffect(() => {
+    if (phase !== "meeting") return;
+    fetch("/api/meeting-slots").then(r => r.json()).then(d => {
+      if (d.success) setBookedSlots(d.booked || []);
+    }).catch(() => {});
+  }, [phase]);
 
   // ─── Scoring ───
   const calcScores = useCallback(() => {
@@ -591,6 +595,10 @@ function MainFlow() {
   const submitMeeting = async () => {
     if (!form.meetingDate1 || !form.meetingTime1) {
       setErrors({ meetingDate1: "필수" });
+      return;
+    }
+    if (isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1) || isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2)) {
+      setErrors({ meetingDate1: "이미 예약된 시간입니다" });
       return;
     }
     setSubmitSt("loading");
@@ -1077,8 +1085,18 @@ function MainFlow() {
   // 실제 담당자 캘린더·6자리 접근 코드 발급(고객 페이지 접근 이력 DB)은 아직 없어,
   // 슬롯 선택 UI만 디자인대로 만들고 코드 카드는 다음 단계로 남겨둔다.
   if (phase === "meeting") {
-    const slots = upcomingSlots(4);
-    const pickedSlot = slots.find(s => s.date === form.meetingDate1 && s.time === form.meetingTime1);
+    const slot1Booked = isSlotBooked(bookedSlots, form.meetingDate1, form.meetingTime1);
+    const slot2Booked = isSlotBooked(bookedSlots, form.meetingDate2, form.meetingTime2);
+
+    const timeSelect = (dateVal, timeVal, onChange) => (
+      <select value={timeVal || ""} onChange={e => onChange(e.target.value)} style={uInp}>
+        <option value="">시간 선택</option>
+        {TIME_SLOTS.map(t => {
+          const booked = isSlotBooked(bookedSlots, dateVal, t);
+          return <option key={t} value={t} disabled={booked}>{t}{booked ? " (예약됨)" : ""}</option>;
+        })}
+      </select>
+    );
 
     return (
       <div style={{ ...wrap, background: "#F4F4F5" }}>
@@ -1092,71 +1110,29 @@ function MainFlow() {
           </div>
 
           <div style={card2}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>
-                {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
-              </span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.accent }}>가능 일정 {slots.length}건</span>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>희망 상담 일정</div>
+            <div style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600, marginTop: -8 }}>
+              담당자가 확인 후 두 일정 중 하나로 최종 확정해 안내드립니다. 이미 예약된 시간은 선택할 수 없습니다.
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              {slots.map((s, i) => {
-                const sel = form.meetingDate1 === s.date && form.meetingTime1 === s.time;
-                return (
-                  <button key={i} onClick={() => { setField("meetingDate1", s.date); setField("meetingTime1", s.time); }} style={{
-                    textAlign: "left", borderRadius: 16, padding: "15px 16px", cursor: "pointer", fontFamily: FONT,
-                    display: "flex", alignItems: "center", gap: 13, transition: "all .18s",
-                    background: sel ? "#FDF1EC" : "#F4F4F5", border: sel ? `1.5px solid ${C.accent}` : "1.5px solid transparent",
-                  }}>
-                    <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 42, flex: "none" }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: sel ? C.accent : "#9A9A9E" }}>{s.dow}</span>
-                      <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.6, color: sel ? C.accent : "#111" }}>{s.day}</span>
-                    </span>
-                    <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.4, color: sel ? "#7A3520" : "#111" }}>{s.time}</span>
-                    {sel && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.accent }}>선택됨</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={() => setShowManualDate(v => !v)} style={{
-              alignSelf: "flex-start", background: "none", border: 0, padding: 0, cursor: "pointer",
-              fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: "#8A8A8E", textDecoration: "underline",
-            }}>{showManualDate ? "제안된 일정으로 돌아가기" : "제안된 일정이 안 맞으신가요? 직접 선택"}</button>
-
-            {showManualDate && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 일시</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input type="date" value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
-                      style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
-                    <select value={form.meetingTime1 || ""} onChange={e => setField("meetingTime1", e.target.value)} style={uInp}>
-                      <option value="">시간 선택</option>
-                      {Array.from({ length: 19 }, (_, i) => {
-                        const h = 9 + Math.floor(i / 2);
-                        const m = i % 2 === 0 ? "00" : "30";
-                        if (h >= 18 && m === "30") return null;
-                        return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
-                      }).filter(Boolean)}
-                    </select>
-                  </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 2 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 1 (필수)</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="date" value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
+                    style={{ ...uInp, borderBottom: `1.5px solid ${errors.meetingDate1 ? C.error : "#E4E4E4"}` }} />
+                  {timeSelect(form.meetingDate1, form.meetingTime1, v => setField("meetingTime1", v))}
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>2안 (선택)</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input type="date" value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
-                    <select value={form.meetingTime2 || ""} onChange={e => setField("meetingTime2", e.target.value)} style={uInp}>
-                      <option value="">시간 선택</option>
-                      {Array.from({ length: 19 }, (_, i) => {
-                        const h = 9 + Math.floor(i / 2);
-                        const m = i % 2 === 0 ? "00" : "30";
-                        if (h >= 18 && m === "30") return null;
-                        return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
-                      }).filter(Boolean)}
-                    </select>
-                  </div>
-                </div>
+                {slot1Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
               </div>
-            )}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 2 (선택)</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="date" value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)} style={uInp} />
+                  {timeSelect(form.meetingDate2, form.meetingTime2, v => setField("meetingTime2", v))}
+                </div>
+                {slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
+              </div>
+            </div>
             <Err f="meetingDate1" />
           </div>
 
@@ -1173,12 +1149,12 @@ function MainFlow() {
           </div>
         </div>
         <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4" }}>
-          <button onClick={submitMeeting} disabled={submitSt === "loading"} style={{
+          <button onClick={submitMeeting} disabled={submitSt === "loading" || slot1Booked || slot2Booked} style={{
             width: "100%", height: 52, border: 0, borderRadius: 16, background: submitSt === "error" ? C.error : "#111",
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
-            opacity: submitSt === "loading" ? 0.6 : 1,
+            opacity: (submitSt === "loading" || slot1Booked || slot2Booked) ? 0.6 : 1,
           }}>
-            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : pickedSlot ? `${pickedSlot.dow}요일 ${pickedSlot.time} 상담 신청` : "상담 신청 완료"}
+            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "상담 신청하기"}
           </button>
         </div>
       </div>
