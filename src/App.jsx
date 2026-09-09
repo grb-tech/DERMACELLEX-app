@@ -446,6 +446,8 @@ const DEV_FIELD_GROUPS = [
   },
 ];
 const ALL_DEV_FIELDS = DEV_FIELD_GROUPS.flatMap(g => g.fields);
+// 값이 배열로 들어가는 입력 유형 — 폼 초기화 · 저장 시 빈 배열로 다뤄야 하는 것들
+const MULTI_VALUE_TYPES = ["multiselect", "list", "relation", "material"];
 
 function Chip({ label, sel, onClick }) {
   return (
@@ -503,6 +505,8 @@ function DevField({ f, value, onChange }) {
   return null;
 }
 const uInpBase = { width: "100%", border: 0, borderBottom: "1.5px solid #E4E4E4", background: "transparent", fontSize: 15, fontWeight: 700, color: "#111", padding: "0 0 9px", outline: "none", fontFamily: FONT };
+// 여러 줄까지 보여주고 그 뒤로만 자른다 — 제형 설명처럼 긴 문장이 한 줄에서 잘려나가지 않도록.
+const clamp = (lines) => ({ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines, overflow: "hidden", whiteSpace: "normal", wordBreak: "break-word" });
 
 function ProgressBar({ current, total }) {
   return (
@@ -546,6 +550,9 @@ export default function App() {
 // ━━━━━━━━━━ MAIN FLOW ━━━━━━━━━━
 function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [phase, setPhase] = useState("intro");
+  // 화면 이동 이력 — 05 품목 선택 · 07 상담 화면에는 원래 뒤로가기가 없어서 한 번 들어가면
+  // 빠져나올 수 없었다. 같은 화면으로 되돌아가는 경우(품목 ↔ 의뢰서)는 쌓지 않고 걷어낸다.
+  const [phaseStack, setPhaseStack] = useState([]);
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [anim, setAnim] = useState(false);
@@ -577,6 +584,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [devForms, setDevForms] = useState([]);
   const [devIdx, setDevIdx] = useState(0);
   const [devStep, setDevStep] = useState(0);
+  // 진단은 한 문의당 한 번만 기록한다 — 뒤로 갔다 다시 진행해도 중복 저장되지 않도록.
+  const [diagnosisDone, setDiagnosisDone] = useState(false);
   // 전용 페이지 접근 코드(상담 신청 시 1회 발급) · 로그인 입력값 · 로그인 후 받아온 전용 페이지 데이터
   const [accessCode, setAccessCode] = useState("");
   const [codeEmailed, setCodeEmailed] = useState(false);
@@ -591,6 +600,38 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [expandedEstimate, setExpandedEstimate] = useState(null);
   const cRef = useRef(null);
+
+  const go = (next) => {
+    setPhaseStack(s => (s[s.length - 1] === next ? s.slice(0, -1) : [...s, phase]));
+    setPhase(next);
+  };
+  const goBack = () => {
+    if (phaseStack.length === 0) return;
+    setPhase(phaseStack[phaseStack.length - 1]);
+    setPhaseStack(s => s.slice(0, -1));
+  };
+  // 새 문의를 시작할 때 이전 문의의 품목 · 카테고리 · 작성 내용이 남아 있으면 대분류 선택이
+  // 통째로 건너뛰어지고 지난번 품목이 그대로 선택돼 보인다. 초안 상태를 모두 비운다.
+  const resetInquiryDraft = () => {
+    setCatalogQuery("");
+    setCatalogCat("전체");
+    setCatalogGroup("전체");
+    setPickedItems([]);
+    setDevForms([]);
+    setDevIdx(0);
+    setDevStep(0);
+    setReg(null);
+    setDiagnosisDone(false);
+    setPhaseStack([]);
+  };
+  const blankDevForm = (it) => {
+    const f = { itemId: it.id, productName: it.name, productType: it.category, formulation: it.form };
+    for (const def of ALL_DEV_FIELDS) {
+      if (f[def.key] !== undefined) continue;
+      f[def.key] = MULTI_VALUE_TYPES.includes(def.type) ? [] : "";
+    }
+    return f;
+  };
 
   useEffect(() => {
     if (phase !== "meeting") return;
@@ -749,6 +790,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // ─── 08 기존 고객: 진단 없이 거래처 · 담당자를 재사용해 새 제조 문의만 만든다 ───
   const registerExisting = async (willWriteDoc) => {
     if (!existingCustomer) return;
+    // 뒤로 갔다가 다시 들어온 경우 — 이미 만든 문의를 재사용해 빈 문의가 중복 생성되지 않게 한다.
+    if (reg?.inquiryId && reg.clientId === existingCustomer.client.id) {
+      setField("willWriteDoc", willWriteDoc);
+      go(willWriteDoc ? "items" : "meeting");
+      return;
+    }
     setSubmitSt("loading");
     try {
       const res = await fetch("/api/register", {
@@ -770,7 +817,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       setField("email", form.email);
       setField("willWriteDoc", willWriteDoc);
       setSubmitSt(null);
-      setPhase(willWriteDoc ? "items" : "meeting");
+      go(willWriteDoc ? "items" : "meeting");
     } catch (err) {
       console.error("Existing register error:", err);
       setSubmitSt("error");
@@ -780,6 +827,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
   // ─── 04 결과 화면 제출: 진단 스코어링 기록 (내부 전용) + 다음 단계 분기 ───
   const submitDiagnosis = async (willWriteDoc) => {
+    // 뒤로 갔다 다시 넘어온 경우 진단을 두 번 기록하지 않는다.
+    if (diagnosisDone) {
+      setField("willWriteDoc", willWriteDoc);
+      go(willWriteDoc ? "items" : "meeting");
+      return;
+    }
     setSubmitSt("loading");
     const sc = calcScores();
     const questionsDetail = QUESTIONS.map((q, i) => ({
@@ -811,9 +864,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "서버 오류");
+      setDiagnosisDone(true);
       setField("willWriteDoc", willWriteDoc);
       setSubmitSt(null);
-      setPhase(willWriteDoc ? "items" : "meeting");
+      go(willWriteDoc ? "items" : "meeting");
     } catch (err) {
       console.error("Diagnosis error:", err);
       setSubmitSt("error");
@@ -824,22 +878,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // ─── 05 → 06 : 선택한 품목마다 상세 입력 폼(간이형)을 준비하고 06 화면으로 이동 ───
   // 기획 문서 흐름상 "제조 품목 선택 → 품목별 제품개발의뢰서 상세 작성 → 상담 일정"이 맞는 순서라,
   // 05에서 바로 노션에 저장하지 않고 06에서 내용을 채운 뒤 한 번에 제출한다.
+  // 품목을 추가·삭제하고 다시 돌아올 수 있으므로, 이미 작성한 내용은 itemId 기준으로 보존한다.
   const goToDevDetail = () => {
     if (pickedItems.length === 0) return;
-    setDevForms(pickedItems.map(it => ({
-      itemId: it.id, productName: it.name, productType: it.category, formulation: it.form,
-      volume: "", quantity: "", targetPrice: "", devType: "", composition: "",
-      mainEffect: "", subEffect: [], targetEffect: "", requiredFeel: "", gender: "", ageGroup: "",
-      targetSkin: "", targetSkinDesc: "", finish: "", viscosity: "",
-      color: "", transparency: "", scent: [], ph: "", particle: "", particleDetail: "",
-      ingredients: "", excludeIngredients: "", functional: "", safety: [],
-      packaging: "", spec: "", suppliedMaterial: "", turnkeyMaterial: "", otherMaterialCond: "",
-      targetContainerUrl: "", reference: "", countries: [], exportRegs: [], nmpaEffect: "",
-      certs: [], countryLimits: "", launchDate: "", additionalNotes: "",
-    })));
-    setDevIdx(0);
+    setDevForms(prev => pickedItems.map(it => prev.find(f => f.itemId === it.id) || blankDevForm(it)));
+    setDevIdx(i => Math.min(i, pickedItems.length - 1));
     setDevStep(0);
-    setPhase("devdetail");
+    go("devdetail");
+  };
+  const removeDevItem = (idx) => {
+    if (devForms.length <= 1) return;
+    const removed = devForms[idx];
+    setDevForms(prev => prev.filter((_, i) => i !== idx));
+    setPickedItems(prev => prev.filter(p => p.id !== removed.itemId));
+    setDevIdx(i => (i >= idx && i > 0 ? i - 1 : i));
+    setDevStep(0);
   };
   const updateDevField = (idx, field, value) => {
     setDevForms(prev => prev.map((f, i) => i === idx ? { ...f, [field]: value } : f));
@@ -857,6 +910,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "서버 오류");
       setSubmitSt(null);
+      // 의뢰서가 이미 노션에 저장됐으므로 여기서부터는 되돌아갈 수 없다(중복 저장 방지).
+      setPhaseStack([]);
       setPhase("meeting");
     } catch (err) {
       console.error("DevDetail submit error:", err);
@@ -1011,6 +1066,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       if (!result.success || !result.found) throw new Error("고객 정보를 확인하지 못했습니다.");
       setExistingCustomer(result);
       setSubmitSt(null);
+      resetInquiryDraft();
       setPhase("returning");
     } catch (err) {
       console.error("Start new inquiry from portal error:", err);
@@ -1427,7 +1483,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               </UField>
             </div>
             <UField label="연락처" req>
-              <input value={form.phone} placeholder="010-1234-5678" type="tel" onChange={e => setField("phone", e.target.value)} style={uInp} />
+              <input value={form.phone} placeholder="010-1234-5678" type="tel" inputMode="tel"
+                onChange={e => setField("phone", e.target.value.replace(/[^\d+\-() ]/g, ""))} style={uInp} />
               <Err f="phone" />
             </UField>
             <UField label="이메일" req>
@@ -1641,10 +1698,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
               <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
             </span>
-            <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, ...clamp(1) }}>
               {[it.category, it.group].filter(v => v && v !== it.name).join(" · ")}
             </span>
-            {it.desc && <span style={{ fontSize: 12, color: "#B0B0B4", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.desc}</span>}
+            {it.desc && <span style={{ fontSize: 12, color: "#B0B0B4", fontWeight: 500, lineHeight: 1.45, ...clamp(3) }}>{it.desc}</span>}
           </span>
           <span style={{
             width: 24, height: 24, flex: "none", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center",
@@ -1659,7 +1716,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 가능 품목</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {phaseStack.length > 0 && <button onClick={goBack} style={backBtn}>←</button>}
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 가능 품목</div>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 16px", background: "#fff", borderRadius: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
             <span style={{ fontSize: 15, color: "#B0B0B4" }}>⌕</span>
             <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="품목 · 제품군 · 제형 검색"
@@ -1752,7 +1812,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <div style={{ flex: "none", padding: "14px 20px", background: "#111", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
             <span style={{ fontSize: 12, color: "#9A9A9E", fontWeight: 600 }}>선택한 품목</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.3, lineHeight: 1.4, ...clamp(2) }}>
               {pickedItems.length === 0 ? "품목을 선택해주세요" : pickedItems.map(p => p.name).join(", ")}
             </span>
           </div>
@@ -1778,6 +1838,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     const goPrev = () => {
       if (devStep > 0) setDevStep(s => s - 1);
       else if (devIdx > 0) { setDevIdx(i => i - 1); setDevStep(DEV_FIELD_GROUPS.length - 1); }
+      else goBack();
     };
     const goNext = () => {
       if (!isLastStep) { setDevStep(s => s + 1); return; }
@@ -1797,16 +1858,32 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             {devForms.map((f, i) => {
               const active = i === devIdx;
               return (
-                <button key={i} onClick={() => { setDevIdx(i); setDevStep(0); }} style={{
-                  flex: "none", borderRadius: 14, padding: "9px 13px", cursor: "pointer", fontFamily: FONT,
-                  textAlign: "left", background: active ? "#111" : "#fff",
+                <div key={f.itemId || i} style={{
+                  flex: "none", borderRadius: 14, cursor: "pointer", background: active ? "#111" : "#fff",
                   border: active ? "1.5px solid #111" : "1.5px solid transparent",
+                  display: "flex", alignItems: "center",
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: active ? "#8A8A8E" : "#B0B0B4", fontFamily: "ui-monospace, monospace" }}>DEV-{String(i + 1).padStart(2, "0")}</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: active ? "#fff" : "#111", whiteSpace: "nowrap" }}>{f.productName}</div>
-                </button>
+                  <button onClick={() => { setDevIdx(i); setDevStep(0); }} style={{
+                    border: 0, background: "transparent", padding: "9px 4px 9px 13px", cursor: "pointer",
+                    fontFamily: FONT, textAlign: "left",
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: active ? "#8A8A8E" : "#B0B0B4", fontFamily: "ui-monospace, monospace" }}>DEV-{String(i + 1).padStart(2, "0")}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: active ? "#fff" : "#111", whiteSpace: "nowrap" }}>{f.productName}</div>
+                  </button>
+                  {devForms.length > 1 && (
+                    <button onClick={() => removeDevItem(i)} title="이 품목 빼기" style={{
+                      border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
+                      padding: "0 11px 0 5px", fontSize: 13, color: active ? "#8A8A8E" : "#C4C4C6",
+                    }}>✕</button>
+                  )}
+                </div>
               );
             })}
+            <button onClick={() => go("items")} style={{
+              flex: "none", borderRadius: 14, padding: "9px 15px", cursor: "pointer", fontFamily: FONT,
+              background: "transparent", border: "1.5px dashed #C4C4C6", color: "#434343",
+              fontSize: 13, fontWeight: 800, whiteSpace: "nowrap",
+            }}>+ 품목 추가</button>
           </div>
           <div style={{ display: "flex", gap: 6, paddingBottom: 12 }}>
             {DEV_FIELD_GROUPS.map((g, i) => (
@@ -1874,10 +1951,13 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       <div style={{ ...wrap, background: "#F4F4F5" }}>
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 상담 일정</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>
-              담당자 배정 예정 · 30분 · Zoom{form.willWriteDoc ? " · 개발의뢰서는 상담 후 별도 안내" : ""}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {phaseStack.length > 0 && <button onClick={goBack} style={backBtn}>←</button>}
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 상담 일정</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>
+                담당자 배정 예정 · 30분 · Zoom{form.willWriteDoc ? " · 개발의뢰서는 상담 후 별도 안내" : ""}
+              </div>
             </div>
           </div>
 
