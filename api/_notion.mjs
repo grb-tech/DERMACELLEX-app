@@ -25,8 +25,9 @@ export const DB = {
   ESTIMATE: '581b7f81-5640-4884-93b1-f5b5fa70186b',
   // 제조 가견적 항목
   ESTIMATE_ITEM: '0fca38a8-5a8a-48a7-969b-f2993ce553ce',
-  // 피부타입DB (제품개발의뢰서 '타겟피부' 관계 대상)
-  SKINTYPE: '3024c864-7128-8329-976d-816b9f103453',
+  // 피부타입DB (제품개발의뢰서 '타겟피부' 관계 대상 — BUSINESS OS 쪽이 정본, 2026-09-09 확정.
+  // 이름이 같은 BIOBIJOU 쪽 구버전(3024c864-...)과 혼동하지 않도록 주의)
+  SKINTYPE: '38f4c864-7128-8041-8b1c-ed18d9e0c94a',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
