@@ -221,6 +221,31 @@ export default async function handler(req, res) {
 
     const { clientId, contactId } = matched;
 
+    // 알림함 읽음 처리 — 별도 서버리스 함수를 새로 만들지 않고(Vercel Hobby 플랜 함수 개수
+    // 제한), 이미 인증을 마친 이 요청에 얹어서 처리한다. 로그인 응답에 최신 읽음 상태가
+    // 그대로 반영되므로 프론트에서 다시 새로고침할 필요도 없다.
+    const { markReadId, markReadAll } = req.body;
+    if (markReadAll) {
+      const unread = await queryDb(TOKEN, DB.NOTIFICATION, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 페이지 노출', checkbox: { equals: true } },
+          { property: '읽음 여부', checkbox: { equals: false } },
+        ],
+      });
+      await Promise.all((unread.results || []).map(p => notionCall(TOKEN, 'PATCH', `/pages/${p.id}`, {
+        properties: { '읽음 여부': { checkbox: true }, '읽은 시각': { date: { start: new Date().toISOString() } } },
+      }).catch(() => {})));
+    } else if (markReadId) {
+      const notiPage = await notionCall(TOKEN, 'GET', `/pages/${markReadId}`).catch(() => null);
+      const ownerId = notiPage?.properties?.['제조 의뢰 거래처']?.relation?.[0]?.id;
+      if (ownerId === clientId) {
+        await notionCall(TOKEN, 'PATCH', `/pages/${markReadId}`, {
+          properties: { '읽음 여부': { checkbox: true }, '읽은 시각': { date: { start: new Date().toISOString() } } },
+        }).catch(() => {});
+      }
+    }
+
     // 이 거래처의 가장 최근 문의를 대시보드에 보여준다(문의가 여러 건이어도 코드는 하나뿐).
     const inquiries = await queryDb(TOKEN, DB.INQUIRY, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
       [{ timestamp: 'created_time', direction: 'descending' }]);

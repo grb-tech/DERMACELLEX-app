@@ -2558,10 +2558,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n),
       } : prev);
       try {
-        await fetch("/api/notify-read", {
+        // 알림 읽음 처리는 별도 API가 아니라 portal-login에 얹어서 보낸다(Vercel Hobby
+        // 플랜의 서버리스 함수 개수 제한 때문 — 이미 인증 로직이 있는 곳에 재사용).
+        await fetch("/api/portal-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), id }),
+          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), markReadId: id }),
         });
       } catch {}
     };
@@ -2571,10 +2573,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         notifications: prev.notifications.map(n => ({ ...n, read: true })),
       } : prev);
       try {
-        await fetch("/api/notify-read", {
+        await fetch("/api/portal-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), all: true }),
+          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), markReadAll: true }),
         });
       } catch {}
     };
