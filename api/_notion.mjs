@@ -27,6 +27,12 @@ export const DB = {
   ESTIMATE_ITEM: '0fca38a8-5a8a-48a7-969b-f2993ce553ce',
   // 제조 계약 관리
   CONTRACT: 'a5fb8837-00ea-43eb-9de4-8b38cd3c25d2',
+  // 제조 프로젝트
+  PROJECT: '6e164bfc-fabf-43f9-a529-2681fd09eaae',
+  // 제조 개발 진행
+  PROGRESS: 'c0925108-5e94-42b1-9c76-2fd9578e2929',
+  // 제조 고객 알림
+  NOTIFICATION: 'e0aededd-72a8-4b32-bb88-26bb5d635566',
   // 피부타입DB (제품개발의뢰서 '타겟피부' 관계 대상 — BUSINESS OS 쪽이 정본, 2026-09-09 확정.
   // 이름이 같은 BIOBIJOU 쪽 구버전(3024c864-...)과 혼동하지 않도록 주의)
   SKINTYPE: '38f4c864-7128-8041-8b1c-ed18d9e0c94a',

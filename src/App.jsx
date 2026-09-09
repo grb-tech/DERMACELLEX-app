@@ -891,6 +891,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [expandedEstimate, setExpandedEstimate] = useState(null);
   const [expandedContract, setExpandedContract] = useState(null);
+  const [expandedStep, setExpandedStep] = useState(null);
+  const [activeProject, setActiveProject] = useState(0);
   const cRef = useRef(null);
 
   const go = (next) => {
@@ -2536,7 +2538,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // "아직 없음" 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 ·
   // 등급 · 위험 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
   if (phase === "portal" && portalData) {
-    const { inquiry, client, contact, meeting, products, estimates = [], contracts = [] } = portalData;
+    const { inquiry, client, contact, meeting, products, estimates = [], contracts = [], projects = [], notifications = [] } = portalData;
     const fmt = (d) => d ? new Date(d).toLocaleString("ko", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
     const fmtMoney = (n, cur) => (typeof n === "number" ? `${n.toLocaleString("ko")}${cur === "USD" ? " USD" : cur === "CNY" ? " CNY" : "원"}` : "-");
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString("ko") : "-";
@@ -2548,6 +2550,43 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       return diff;
     };
     const latestContract = contracts[0] || null;
+    const latestProject = projects[0] || null;
+    const unreadNotis = notifications.filter(n => !n.read);
+    const markNotiRead = async (id) => {
+      setPortalData(prev => prev ? {
+        ...prev,
+        notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+      } : prev);
+      try {
+        await fetch("/api/notify-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), id }),
+        });
+      } catch {}
+    };
+    const markAllNotisRead = async () => {
+      setPortalData(prev => prev ? {
+        ...prev,
+        notifications: prev.notifications.map(n => ({ ...n, read: true })),
+      } : prev);
+      try {
+        await fetch("/api/notify-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), all: true }),
+        });
+      } catch {}
+    };
+    const NOTI_ICON = {
+      "일정": { icon: "談", bg: "#111", fg: "#fff" },
+      "보완 요청": { icon: "補", bg: "#FDF1EC", fg: C.accent },
+      "가견적": { icon: "見", bg: "#111", fg: "#fff" },
+      "계약": { icon: "契", bg: C.accent, fg: "#fff" },
+      "프로젝트": { icon: "進", bg: "#111", fg: "#fff" },
+      "마감 안내": { icon: "急", bg: "#FDF1EC", fg: C.accent },
+      "일반 안내": { icon: "안", bg: "#F1F1F2", fg: "#434343" },
+    };
     const STAGES = ["접수", "상담", "견적", "계약", "프로젝트 전환"];
     const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
     const openProducts = products.filter(p => p.status && p.status !== "완료").length;
@@ -2673,10 +2712,25 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               </button>
             )}
 
-            <div style={placeholder}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
-            </div>
+            {latestProject ? (
+              <button onClick={() => setPortalTab("progress")} style={{
+                textAlign: "left", background: "#111", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                border: 0, cursor: "pointer", fontFamily: FONT, color: "#fff", display: "flex", flexDirection: "column", gap: 4,
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#9A9A9E" }}>{latestProject.uid ? `${latestProject.uid} · ` : ""}{latestProject.name || "제조 프로젝트"}</span>
+                <span style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4 }}>{latestProject.currentStage || latestProject.status || "-"}</span>
+                  {typeof latestProject.progress === "number" && (
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.accent, letterSpacing: -0.6 }}>{Math.round(latestProject.progress <= 1 ? latestProject.progress * 100 : latestProject.progress)}%</span>
+                  )}
+                </span>
+              </button>
+            ) : (
+              <div style={placeholder}>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
+              </div>
+            )}
 
             {meeting && (
               <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", alignItems: "center", gap: 13 }}>
@@ -2941,18 +2995,132 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               );
             })}
           </>)}
-          {portalTab === "progress" && (
-            <div style={placeholder}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>진행 상황</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 제품별 진행 타임라인이 여기에 표시됩니다.</div>
+          {portalTab === "progress" && (<>
+            {projects.length === 0 && (
+              <div style={placeholder}>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>진행 상황</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 제품별 진행 타임라인이 여기에 표시됩니다.</div>
+              </div>
+            )}
+            {projects.length > 1 && (
+              <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+                {projects.map((p, i) => (
+                  <button key={p.id || i} onClick={() => setActiveProject(i)} style={{
+                    flex: "none", height: 38, padding: "0 14px", borderRadius: 12, cursor: "pointer", fontFamily: FONT,
+                    border: 0, fontSize: 12.5, fontWeight: 800,
+                    background: activeProject === i ? "#111" : "#fff", color: activeProject === i ? "#fff" : "#8A8A8E",
+                  }}>{p.name || `프로젝트 ${i + 1}`}</button>
+                ))}
+              </div>
+            )}
+            {projects[activeProject] && (() => {
+              const proj = projects[activeProject];
+              const pct = typeof proj.progress === "number" ? Math.round(proj.progress <= 1 ? proj.progress * 100 : proj.progress) : null;
+              const steps = [...proj.steps].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+              return (
+                <>
+                  <div style={{ borderRadius: 22, padding: "18px 20px 22px", background: "#111", color: "#fff" }}>
+                    <div style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{proj.uid ? `${proj.uid} · ` : ""}{proj.name || "제조 프로젝트"}</div>
+                    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 12 }}>
+                      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.6 }}>{proj.currentStage || proj.status || "-"}</div>
+                      {pct != null && <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1, color: C.accent }}>{pct}%</div>}
+                    </div>
+                    {pct != null && (
+                      <div style={{ height: 8, borderRadius: 99, background: "#2A2A2E", overflow: "hidden", marginTop: 12 }}>
+                        <div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: C.accent }} />
+                      </div>
+                    )}
+                    {proj.summary && <div style={{ fontSize: 12.5, color: "#C4C4C6", fontWeight: 600, marginTop: 12, lineHeight: 1.5 }}>{proj.summary}</div>}
+                  </div>
+
+                  {steps.length === 0 ? (
+                    <div style={placeholder}>
+                      <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 공개된 세부 진행 단계가 없습니다.</div>
+                    </div>
+                  ) : (
+                    <div style={card2}>
+                      {steps.map((s, i) => {
+                        const done = s.status === "완료";
+                        const active = s.status === "진행 중" || s.status === "고객 확인 대기";
+                        const attention = s.status === "보완 필요";
+                        const dotBg = done ? "#111" : active ? C.accent : attention ? "#D33" : "#fff";
+                        const dotFg = done || active || attention ? "#fff" : "#B0B0B4";
+                        const dotBorder = done || active || attention ? "none" : "1.5px solid #E4E4E4";
+                        const isOpen = expandedStep === i;
+                        return (
+                          <div key={s.id || i} style={{ display: "flex", gap: 13, alignItems: "stretch" }}>
+                            <div style={{ width: 22, flex: "none", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                              <span style={{
+                                width: 20, height: 20, borderRadius: 99, flex: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 10, fontWeight: 800, color: dotFg, background: dotBg, border: dotBorder,
+                              }}>{done ? "✓" : i + 1}</span>
+                              {i < steps.length - 1 && <span style={{ flex: 1, width: 2, minHeight: 14, background: done ? "#111" : "#E4E4E4" }} />}
+                            </div>
+                            <button onClick={() => setExpandedStep(isOpen ? null : i)} style={{
+                              flex: 1, textAlign: "left", border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
+                              padding: 0, paddingBottom: 16, display: "flex", flexDirection: "column", gap: 8,
+                            }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 9, width: "100%" }}>
+                                <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: -0.3, color: done ? "#8A8A8E" : "#111" }}>{s.stage || s.name || "-"}</span>
+                                <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: active ? C.accent : attention ? "#D33" : "#8A8A8E", background: active ? "#FDF1EC" : attention ? "#FDECEC" : "#F1F1F2" }}>{s.status || "-"}</span>
+                                <span style={{ flex: 1 }} />
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "#A8A8AC" }}>{fmtDate(s.endDate || s.targetDate)}</span>
+                              </span>
+                              {isOpen && (
+                                <span style={{ width: "100%", padding: 14, borderRadius: 16, background: "#F7F7F7", display: "flex", flexDirection: "column", gap: 8 }}>
+                                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.55, fontWeight: 600 }}>{s.summary || "공개된 세부 설명이 없습니다."}</span>
+                                  {s.targetDate && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8A8E" }}>목표일 {fmtDate(s.targetDate)}</span>}
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>)}
+          {portalTab === "alerts" && (<>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>알림</span>
+                {unreadNotis.length > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{unreadNotis.length}개 안읽음</span>}
+              </div>
+              {unreadNotis.length > 0 && (
+                <button onClick={markAllNotisRead} style={{
+                  height: 34, padding: "0 13px", border: 0, borderRadius: 11, background: "#fff", color: "#434343",
+                  fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                }}>모두 읽음</button>
+              )}
             </div>
-          )}
-          {portalTab === "alerts" && (
-            <div style={placeholder}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>알림</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 알림이 없습니다.</div>
-            </div>
-          )}
+            {notifications.length === 0 && (
+              <div style={placeholder}>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 알림이 없습니다.</div>
+              </div>
+            )}
+            {notifications.map((n, i) => {
+              const ic = NOTI_ICON[n.type] || NOTI_ICON["일반 안내"];
+              return (
+                <button key={n.id || i} onClick={() => !n.read && markNotiRead(n.id)} style={{
+                  textAlign: "left", border: 0, borderRadius: 18, padding: 16, cursor: n.read ? "default" : "pointer", fontFamily: FONT,
+                  display: "flex", gap: 12, alignItems: "flex-start", background: n.read ? "#fff" : "#FFFDFB", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                }}>
+                  <span style={{ width: 36, height: 36, flex: "none", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: ic.fg, background: ic.bg }}>{ic.icon}</span>
+                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: C.accent }}>{n.type || "안내"}</span>
+                      <span style={{ fontSize: 11, color: "#B0B0B4", fontWeight: 600 }}>{fmtDate(n.sentDate)}</span>
+                    </span>
+                    <span style={{ fontSize: 14.5, letterSpacing: -0.3, color: "#111", fontWeight: n.read ? 700 : 800 }}>{n.title || "-"}</span>
+                    {n.body && <span style={{ fontSize: 12.5, color: "#8A8A8E", lineHeight: 1.5, fontWeight: 600 }}>{n.body}</span>}
+                  </span>
+                  {!n.read && <span style={{ width: 8, height: 8, flex: "none", borderRadius: 99, marginTop: 6, background: C.accent }} />}
+                </button>
+              );
+            })}
+          </>)}
 
           <div style={{ textAlign: "center", fontSize: 11.5, color: "#B0B0B4", fontWeight: 600, marginTop: 4 }}>
             {portalSynced ? `마지막 업데이트 ${portalSynced.toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" })} · 15초마다 자동 새로고침` : ""}
@@ -2966,7 +3134,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 flex: 1, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "4px 0",
               }}>
-                <span style={{ fontSize: 17 }}>{t.icon}</span>
+                <span style={{ fontSize: 17, position: "relative" }}>
+                  {t.icon}
+                  {t.key === "alerts" && unreadNotis.length > 0 && (
+                    <span style={{ position: "absolute", top: -2, right: -6, width: 7, height: 7, borderRadius: 99, background: C.accent }} />
+                  )}
+                </span>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: active ? "#111" : "#B0B0B4" }}>{t.label}</span>
               </button>
             );

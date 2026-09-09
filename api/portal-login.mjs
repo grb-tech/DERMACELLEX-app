@@ -137,6 +137,54 @@ function mapContract(p) {
   };
 }
 
+// 제조 프로젝트 · 제조 개발 진행도 같은 기준 — 담당자가 "고객 공개"를 체크한 것만 보여준다.
+// 개발 진행(12단계)은 프로젝트 관계로 묶어서 타임라인으로 보여준다.
+function mapProject(p) {
+  const pr = p.properties || {};
+  return {
+    id: p.id,
+    name: plain(pr['프로젝트명'], 'title'),
+    uid: plain(pr['프로젝트 ID'], 'unique_id'),
+    status: plain(pr['상태'], 'select'),
+    currentStage: plain(pr['현재 단계'], 'select'),
+    progress: plain(pr['진행률'], 'number'),
+    startDate: plain(pr['시작일'], 'date'),
+    targetDate: plain(pr['목표 완료일'], 'date'),
+    endDate: plain(pr['완료일'], 'date'),
+    summary: plain(pr['고객 공개용 진행 설명'], 'text'),
+  };
+}
+
+function mapProgress(p) {
+  const pr = p.properties || {};
+  return {
+    id: p.id,
+    projectIds: plain(pr['제조 프로젝트'], 'relation'),
+    name: plain(pr['진행 항목명'], 'title'),
+    stage: plain(pr['단계'], 'select'),
+    status: plain(pr['상태'], 'select'),
+    targetDate: plain(pr['목표일'], 'date'),
+    endDate: plain(pr['완료일'], 'date'),
+    summary: plain(pr['고객 공개용 설명'], 'text'),
+    sortOrder: plain(pr['정렬 순서'], 'number'),
+  };
+}
+
+// 알림은 "고객 페이지 노출" 체크 + 실제 발송이 끝난 것만 보여준다 — 발송 대기·초안은 숨긴다.
+function mapNotification(p) {
+  const pr = p.properties || {};
+  return {
+    id: p.id,
+    uid: plain(pr['알림 ID'], 'unique_id'),
+    type: plain(pr['알림 유형'], 'select'),
+    title: plain(pr['알림 제목'], 'title'),
+    body: plain(pr['알림 내용'], 'text'),
+    sentDate: plain(pr['발송일'], 'date'),
+    read: plain(pr['읽음 여부'], 'checkbox'),
+    readAt: plain(pr['읽은 시각'], 'date'),
+  };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -182,7 +230,7 @@ export default async function handler(req, res) {
     }
     // 미팅 · 제품개발의뢰서는 문의 1건이 아니라 거래처 전체 기준으로 모은다 — 문의를 여러 번
     // 넣은 거래처도 예전 의뢰서 · 예전 상담까지 전용 페이지에서 전부 보이도록.
-    const [meetings, devreqs, clientPage, contactPage, estimateHeaders, estimateItems, contracts] = await Promise.all([
+    const [meetings, devreqs, clientPage, contactPage, estimateHeaders, estimateItems, contracts, projects, progressSteps, notifications] = await Promise.all([
       queryDb(TOKEN, DB.MEETING, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
       queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
@@ -209,6 +257,27 @@ export default async function handler(req, res) {
           { property: '고객 공개', checkbox: { equals: true } },
         ],
       }, [{ timestamp: 'created_time', direction: 'descending' }]),
+      // 제조 프로젝트 · 개발 진행도 동일 기준.
+      queryDb(TOKEN, DB.PROJECT, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 공개', checkbox: { equals: true } },
+        ],
+      }, [{ timestamp: 'created_time', direction: 'descending' }]),
+      queryDb(TOKEN, DB.PROGRESS, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 공개', checkbox: { equals: true } },
+        ],
+      }, [{ property: '정렬 순서', direction: 'ascending' }]),
+      // 알림은 "고객 페이지 노출" 체크 + 실제 발송이 끝난 것만 노출한다.
+      queryDb(TOKEN, DB.NOTIFICATION, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 페이지 노출', checkbox: { equals: true } },
+          { property: '발송 상태', select: { equals: '발송 완료' } },
+        ],
+      }, [{ timestamp: 'created_time', direction: 'descending' }]),
     ]);
 
     const latestMeeting = (meetings.results || [])[0];
@@ -225,6 +294,20 @@ export default async function handler(req, res) {
       const header = mapEstimateHeader(h);
       const items = (itemsByEstimate[h.id] || []).map(({ estimateIds, ...rest }) => rest);
       return { ...header, items };
+    });
+
+    // 개발 진행(12단계)을 소속 프로젝트 ID별로 묶는다.
+    const stepsByProject = {};
+    for (const stepPage of (progressSteps.results || [])) {
+      const mapped = mapProgress(stepPage);
+      for (const pid of mapped.projectIds) {
+        (stepsByProject[pid] ||= []).push(mapped);
+      }
+    }
+    const projectList = (projects.results || []).map(p => {
+      const project = mapProject(p);
+      const steps = (stepsByProject[p.id] || []).map(({ projectIds, ...rest }) => rest);
+      return { ...project, steps };
     });
 
     // '제조 문의명'은 "[INQ-xxx] 회사명 | 제조개발 문의" 형태라 고유 ID · 회사명과 겹친다 —
@@ -259,6 +342,8 @@ export default async function handler(req, res) {
       products: (devreqs.results || []).map(mapProductDetail),
       estimates,
       contracts: (contracts.results || []).map(mapContract),
+      projects: projectList,
+      notifications: (notifications.results || []).map(mapNotification),
     });
   } catch (err) {
     console.error('Portal Login Error:', err);
