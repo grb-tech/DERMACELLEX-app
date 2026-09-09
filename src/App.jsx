@@ -368,141 +368,429 @@ function AnimNum({ value, suffix = "" }) {
 // 02 고객 정보 등록 등 카드형 화면의 입력 필드 라벨 래퍼.
 // (컴포넌트를 화면 함수 안쪽에 정의하면 매 렌더링마다 새로 생성되어, 그 안의 <input>이
 //  타이핑할 때마다 통째로 리마운트되며 포커스를 잃는다 — 그래서 반드시 모듈 최상단에 둔다.)
-function UField({ label, req, children }) {
+function UField({ label, req, hint, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", display: "flex", gap: 4 }}>
-        {label}{req && <span style={{ color: C.accent }}>*</span>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", display: "flex", gap: 4 }}>
+          {label}{req && <span style={{ color: C.accent }}>*</span>}
+        </div>
+        {hint && <div style={{ fontSize: 11.5, fontWeight: 600, color: "#B0B0B4", lineHeight: 1.45 }}>{hint}</div>}
       </div>
       {children}
     </div>
   );
 }
 
-// 06 기획개발의뢰서 — 노션 "📋 제품개발의뢰서" 전체 스키마 기준 필드 구성(md 문서 5-2절).
-// 4개 그룹(=화면 내 4단계)으로 나누고, 각 필드는 공용 DevField 렌더러 하나로 그린다.
+// 06 기획개발의뢰서 — 항목 순서와 안내 문구는 제조사OS 구글시트 3번 시트("제품개발의뢰서")를,
+// 선택지 목록은 노션 "📋 제품개발의뢰서" 스키마를 정본으로 삼는다(시트에만 있는 옵션은 넣지 않는다).
+// 화면은 시트와 같은 7개 섹션으로 나누고, 각 필드는 공용 DevField 렌더러 하나로 그린다.
 const EFFECT_OPTIONS = ["미백", "홍조", "색소침착", "피부톤(밝기)", "피부톤(투명)", "광채", "진정(수딩)", "장벽개선", "리페어", "수분보습", "쿨링", "재생", "주름(탄력)", "볼륨(리프팅)", "항산화", "모공(피부결)", "피부두께", "유분조절", "커버", "노폐물제거"];
+// 부자재 32종 — 노션 옵션의 색상이 곧 분류라, 같은 묶음끼리 모아 한 번만 보여준다.
+const MATERIAL_GROUPS = [
+  { title: "용기 · 튜브 · 파우치", items: ["용기(인쇄)", "용기(라벨)", "튜브(인쇄)", "파우치(인쇄)", "파우치(라벨)"] },
+  { title: "단상자 · 완충재", items: ["단상자(하단접착형)", "단상자(십자조립형)", "단상자(맞뚜껑형)", "단상자(날개형)", "단상자(슬리브형)", "PET단상자(하단접착형)", "완충재(단상자용)"] },
+  { title: "싸바리", items: ["싸바리(상하분리형)", "싸바리(일체형)", "싸바리(하단형)"] },
+  { title: "내부포장재", items: ["내부포장재(간지)", "내부포장재(EVA)", "내부포장재(EVA상단종이)"] },
+  { title: "필름 · 포장구조재 · 실링", items: ["필름(수축필름)", "포장구조재(슬리브)", "포장구조재(빠킹)", "실링(고주파)"] },
+  { title: "라벨 · 스티커 · 인쇄물", items: ["라벨(개봉방지형)", "라벨(정품인증QR)", "스티커(봉합용)", "인쇄물(설명서)"] },
+  { title: "지지대", items: ["지지대(플라스틱)", "지지대(종이)", "지지대(종이합지)"] },
+  { title: "박스", items: ["박스(인박스)", "박스(아웃박스)"] },
+  { title: "도구", items: ["도구(스패출러)"] },
+];
+const EXPORT_REG_OPTIONS = ["한국MFDS", "중국NMPA", "일본PMDA", "미국MoCRA", "유럽CPNP", "캐나다(CNF)", "대만(TFDA)", "영국(SCPN)", "베트남(DAV)", "호주(AICIS)", "필리핀(FDA)", "인도(CDSCO)", "사우디(SFDA)", "뉴질랜드(EPA)", "싱가포르(HSA)", "태국(Thai FDA)", "브라질(ANVISA)", "말레이시아(NPRA)", "인도네시아(BPOM)", "아랍에미리트(UAE)", "기타"];
+const NMPA_OPTIONS = ["해당없음", "여드름제거/祛痘", "유분조절/控油", "청결/清洁", "각질제거/去角质", "영양공급/滋养", "메이크업리무버/卸妆", "보습/保湿", "진정/舒缓", "리페어/修护", "주름개선/抗皱", "타이트닝/紧致", "기미제거미백(특수)/祛斑美白（特殊）", "자외선차단(특수)/防晒（特殊）", "민감피부사용가능/敏感肌可用"];
 const DEV_FIELD_GROUPS = [
   {
-    title: "기본 정보",
+    title: "제품 기본정보",
     fields: [
-      { key: "productName", label: "제품명 / 가칭", type: "text", req: true },
-      { key: "volume", label: "내용량", type: "text", placeholder: "예: 50ml" },
-      { key: "quantity", label: "초도 희망수량", type: "text", placeholder: "예: 3000", numeric: true },
-      { key: "targetPrice", label: "목표 원가", type: "text", placeholder: "예: 3,000원(부자재 포함)" },
-      { key: "devType", label: "개발유형", type: "select", options: ["신규 제형 개발", "기존 제형 응용", "타겟 제품 벤치마킹", "기존 제품 리뉴얼", "기타"] },
-      { key: "composition", label: "제품구성", type: "select", options: ["단품", "패키지"] },
+      { key: "composition", label: "제품 구성", type: "select", options: ["단품", "패키지"], hint: "단품 또는 세트 구성 여부를 선택해 주세요." },
+      { key: "productName", label: "제품명 / 가칭", type: "text", req: true, hint: "확정 전이라면 임시 제품명을 입력해 주세요." },
+      { key: "productType", label: "제품 카테고리", type: "text", hint: "선택하신 제조 품목에서 자동으로 채워집니다. 다르면 직접 고쳐 주세요." },
+      { key: "volume", label: "내용량", type: "text", placeholder: "예: 50ml", hint: "제품 1개 기준 희망 용량을 입력해 주세요." },
+      { key: "spec", label: "규격", type: "text", placeholder: "예: 2ea", hint: "패키지 내 총 구성 수량을 입력해 주세요." },
+      {
+        key: "devType", label: "개발 유형", type: "select", hint: "원하는 개발 방식을 선택해 주세요.",
+        options: ["신규 제형 개발", "기존 제형 응용", "타겟 제품 벤치마킹", "기존 제품 리뉴얼", "기타"],
+        otherKey: "devTypeOther", otherWhen: "기타", otherLabel: "개발 유형 직접 작성",
+      },
+      { key: "quantity", label: "초도 희망수량", type: "number", placeholder: "예: 3000", unit: "개", hint: "첫 생산 시 예상·희망 수량을 입력해 주세요." },
+      { key: "launchDate", label: "희망 런칭 일정", type: "date", hint: "출시를 목표로 하는 시점을 선택해 주세요." },
+      { key: "targetPrice", label: "목표 원가", type: "number", placeholder: "예: 3000", unit: "원", hint: "완제품 1개 기준 희망 생산단가를 입력해 주세요. 부자재를 포함한 금액입니다." },
     ],
   },
   {
-    title: "효능 · 사용감",
+    title: "개발 콘셉트",
     fields: [
-      { key: "mainEffect", label: "메인효능", type: "select", options: EFFECT_OPTIONS },
-      { key: "subEffect", label: "서브효능", type: "multiselect", options: EFFECT_OPTIONS },
-      { key: "targetEffect", label: "타겟 효능 서술", type: "textarea" },
-      { key: "formulation", label: "타겟 사용감 / 제형", type: "text" },
-      { key: "requiredFeel", label: "필수 사용감", type: "text" },
-      { key: "gender", label: "타겟 성별", type: "select", options: ["남성", "여성", "남녀공용"] },
-      { key: "ageGroup", label: "타겟 연령층", type: "select", options: ["10~20대", "20~30대", "30~40대", "40대 이상", "전 연령"] },
-      { key: "targetSkin", label: "타겟 피부 고민", type: "text" },
-      { key: "targetSkinDesc", label: "타겟 피부 서술", type: "textarea" },
-      { key: "finish", label: "마무리감", type: "select", options: ["산뜻", "촉촉", "글로우", "보송", "리치", "타겟품동일", "직접작성"] },
-      { key: "viscosity", label: "점도 · 텍스처", type: "select", options: ["가벼움", "중간", "리치함", "특수텍스처", "타겟품동일", "직접작성"] },
+      { key: "reference", label: "타겟 제품 / 샘플", type: "url", hint: "참고할 제품명 또는 URL을 입력해 주세요." },
+      { key: "formulation", label: "타겟 사용감 / 제형", type: "text", hint: "원하는 제형과 사용감을 작성해 주세요." },
+      { key: "targetSkin", label: "타겟 피부", type: "skin", hint: "주요 사용 대상의 피부 고민을 선택해 주세요." },
+      { key: "targetSkinDesc", label: "타겟 피부 서술", type: "textarea", hint: "선택한 피부 고민에 대해 추가로 고려할 사항이 있다면 작성해 주세요." },
+      { key: "gender", label: "타겟 성별", type: "select", options: ["남성", "여성", "남녀공용"], hint: "주요 사용 대상의 성별을 선택해 주세요." },
+      { key: "ageGroup", label: "타겟 연령층", type: "select", options: ["10~20대", "20~30대", "30~40대", "40대 이상", "전 연령"], hint: "주요 사용 대상의 연령대를 선택해 주세요." },
+      { key: "mainEffect", label: "메인 효능", type: "select", options: EFFECT_OPTIONS, hint: "가장 중요하게 강조할 효능을 하나 선택해 주세요." },
+      { key: "subEffect", label: "서브 효능", type: "multiselect", options: EFFECT_OPTIONS, max: 2, hint: "함께 구현하고 싶은 보조 효능을 최대 2개까지 선택해 주세요." },
+      { key: "targetEffect", label: "타겟 효능 서술", type: "textarea", hint: "선택한 효능에 대해 추가로 구현하고 싶은 사항을 작성해 주세요." },
     ],
   },
   {
-    title: "색상 · 향 · 원료",
+    title: "개발 처방기준",
     fields: [
-      { key: "color", label: "내용물 색상", type: "select", options: ["무색", "백색", "원료고유색", "지정색", "제조사제안"] },
-      { key: "transparency", label: "내용물 투명도", type: "select", options: ["투명", "반투명", "불투명", "제조사제안"] },
-      { key: "scent", label: "향", type: "multiselect", options: ["무향저취", "천연향료", "합성향료", "블렌딩", "지정향", "은은", "보통", "강함", "제조사제안"] },
-      { key: "ph", label: "희망 pH", type: "select", options: ["산성(3.0~4.5)", "약산성(4.5~6.5)", "중성(6.5~7.5)", "약알칼리성(7.5~9.0)", "강알칼리성(9.0이상)", "사용감에따라적용"] },
-      { key: "particle", label: "입자 · 고형 소재", type: "select", options: ["미적용", "비드", "캡슐", "스크럽입자", "소금슈가", "허브식물분말", "꽃잎식물조각", "제조사제안", "기타"] },
-      { key: "particleDetail", label: "입자 · 고형 상세", type: "text", showIf: f => f.particle && f.particle !== "미적용" },
-      { key: "ingredients", label: "필수 적용 원료", type: "text", placeholder: "원료명 / 희망함량 또는 ppm" },
-      { key: "excludeIngredients", label: "제외 희망 원료", type: "text" },
-      { key: "functional", label: "기능성화장품", type: "select", options: ["비기능성", "미백", "주름개선", "자외선차단", "여드름성피부완화", "미백+주름개선", "미백+주름+자외선차단", "기타"] },
-      { key: "safety", label: "성분 안전성 기준", type: "multiselect", options: ["PEG FREE", "20가지 주의성분 FREE", "알러지유발성분 FREE", "인공향료 FREE", "인공색소 FREE", "효능위주", "해당없음"] },
+      {
+        key: "functional", label: "국내 기능성화장품 적용 여부", type: "select", hint: "한국 판매 시 적용을 원하는 기능성화장품 기준을 선택해 주세요.",
+        options: ["비기능성", "미백", "주름개선", "자외선차단", "여드름성피부완화", "미백+주름개선", "미백+주름+자외선차단", "기타"],
+        otherKey: "functionalOther", otherWhen: "기타", otherLabel: "희망하는 기능성 기준",
+      },
+      { key: "ingredients", label: "필수 적용 원료", type: "list", placeholder: "원료명 / 희망 함량 또는 ppm", hint: "반드시 포함하길 희망하는 원료와 함량을 작성해 주세요. + 를 눌러 여러 개를 추가할 수 있습니다." },
+      { key: "excludeIngredients", label: "제외 희망 원료", type: "list", placeholder: "원료명 또는 성분 기준", hint: "사용을 원하지 않는 성분을 작성해 주세요." },
+      { key: "safety", label: "성분 안전성 기준", type: "multiselect", options: ["PEG FREE", "20가지 주의성분 FREE", "알러지유발성분 FREE", "인공향료 FREE", "인공색소 FREE", "효능위주", "해당없음"], hint: "적용을 원하는 성분 배제 기준을 선택해 주세요." },
+      { key: "ph", label: "희망 pH", type: "select", options: ["산성(3.0~4.5)", "약산성(4.5~6.5)", "중성(6.5~7.5)", "약알칼리성(7.5~9.0)", "강알칼리성(9.0이상)", "사용감에따라적용"], hint: "원하는 pH 기준을 선택해 주세요." },
+      {
+        key: "certs", label: "인증 기준", type: "multiselect", hint: "필요한 인증 기준을 선택해 주세요.",
+        options: ["Vegan", "COSMOS NATURAL", "COSMOS ORGANIC", "HALAL", "USDA Organic", "해당없음", "기타"],
+        otherKey: "certsOther", otherWhen: "기타", otherLabel: "필요한 인증 직접 작성",
+      },
     ],
   },
   {
-    title: "포장 · 수출 · 일정",
+    title: "내용물 상세 사양",
     fields: [
-      { key: "packaging", label: "포장 형태", type: "text", placeholder: "예: 드로퍼 보틀 30ml" },
-      { key: "spec", label: "규격", type: "text", placeholder: "패키지 입수 수량 ea" },
-      { key: "suppliedMaterial", label: "사급 부자재", type: "textarea" },
-      { key: "turnkeyMaterial", label: "턴키 부자재", type: "textarea" },
-      { key: "otherMaterialCond", label: "기타 부자재 조건", type: "textarea" },
-      { key: "targetContainerUrl", label: "타겟 용기 URL", type: "url" },
-      { key: "reference", label: "레퍼런스(타겟 제품 · 샘플) URL", type: "url" },
-      { key: "countries", label: "판매 예정 국가", type: "multiselect", options: ["한국", "중국", "미국", "일본", "EU", "동남아", "중동", "기타"] },
-      { key: "exportRegs", label: "수출 규제 기준", type: "multiselect", options: ["한국MFDS", "중국NMPA", "일본PMDA", "미국MoCRA", "유럽CPNP", "기타"] },
-      { key: "nmpaEffect", label: "NMPA 효능", type: "text", showIf: f => (f.exportRegs || []).includes("중국NMPA") },
-      { key: "certs", label: "인증 기준", type: "multiselect", options: ["Vegan", "COSMOS NATURAL", "COSMOS ORGANIC", "HALAL", "USDA Organic", "해당없음", "기타"] },
-      { key: "countryLimits", label: "국가별 제한사항", type: "textarea" },
-      { key: "launchDate", label: "희망 런칭 일정", type: "date" },
-      { key: "additionalNotes", label: "추가 요청사항", type: "textarea" },
+      { key: "transparency", label: "내용물 투명도", type: "select", options: ["투명", "반투명", "불투명", "제조사제안"], hint: "원하는 내용물의 투명도를 선택해 주세요." },
+      { key: "particle", label: "입자 · 고형 소재 적용", type: "select", options: ["미적용", "비드", "캡슐", "스크럽입자", "소금슈가", "허브식물분말", "꽃잎식물조각", "제조사제안", "기타"], hint: "내용물에 추가할 입자 또는 고형 소재를 선택해 주세요." },
+      { key: "particleDetail", label: "입자 · 고형 소재 상세", type: "text", hint: "원하는 종류 · 색상 · 크기 · 함량 등을 작성해 주세요.", showIf: f => f.particle && f.particle !== "미적용" },
+      {
+        key: "color", label: "내용물 색상", type: "select", hint: "원하는 내용물 색상을 선택해 주세요.",
+        options: ["무색", "백색", "원료고유색", "지정색", "제조사제안"],
+        otherKey: "colorOther", otherWhen: "지정색", otherLabel: "지정 색상",
+      },
+      {
+        key: "scent", label: "향", type: "multiselect", hint: "원하는 향의 유무와 강도를 선택해 주세요.",
+        options: ["무향저취", "천연향료", "합성향료", "블렌딩", "지정향", "은은", "보통", "강함", "제조사제안"],
+        otherKey: "scentOther", otherWhen: "지정향", otherLabel: "지정 향",
+      },
+      {
+        key: "viscosity", label: "점도 / 텍스처", type: "select", hint: "원하는 내용물의 점도와 질감을 선택해 주세요.",
+        options: ["가벼움", "중간", "리치함", "특수텍스처", "타겟품동일", "직접작성"],
+        otherKey: "viscosityOther", otherWhen: "직접작성", otherLabel: "점도 · 텍스처 직접 작성",
+      },
+      {
+        key: "finish", label: "마무리감", type: "select", hint: "도포 후 원하는 피부 느낌을 선택해 주세요.",
+        options: ["산뜻", "촉촉", "글로우", "보송", "리치", "타겟품동일", "직접작성"],
+        otherKey: "finishOther", otherWhen: "직접작성", otherLabel: "마무리감 직접 작성",
+      },
+      { key: "requiredFeel", label: "반드시 구현할 사용감", type: "textarea", hint: "꼭 구현되어야 할 사용감을 작성해 주세요." },
+    ],
+  },
+  {
+    title: "수출 · 규제 개발 기준",
+    fields: [
+      {
+        key: "countries", label: "판매 예정 국가 · 지역", type: "multiselect", hint: "제품을 판매하거나 수출할 예정인 국가 · 지역을 선택해 주세요.",
+        options: ["한국", "중국", "미국", "일본", "EU", "동남아", "중동", "기타"],
+        otherKey: "countriesOther", otherWhen: "기타", otherLabel: "그 밖의 판매 예정 국가",
+      },
+      {
+        key: "exportRegs", label: "수출 규제 적용 기준", type: "multiselect", options: EXPORT_REG_OPTIONS,
+        hint: "판매 예정 국가에 맞춰 필요한 화장품 규제 기준을 검토합니다.",
+        otherKey: "exportRegsOther", otherWhen: "기타", otherLabel: "그 밖의 규제 기준",
+      },
+      { key: "nmpaEffect", label: "중국 NMPA 효능 설정", type: "multiselect", options: NMPA_OPTIONS, hint: "중국 판매 시 적용할 효능을 선택해 주세요.", showIf: f => (f.exportRegs || []).includes("중국NMPA") || (f.countries || []).includes("중국") },
+      { key: "countryLimits", label: "국가별 별도 제한사항", type: "textarea", hint: "국가별 추가 규제 조건을 작성해 주세요." },
+    ],
+  },
+  {
+    title: "용기 · 부자재 개발 기준",
+    fields: [
+      { key: "targetContainerUrl", label: "타겟 용기", type: "url", hint: "참고할 용기 또는 URL을 입력해 주세요." },
+      { key: "packaging", label: "포장 형태", type: "text", hint: "원하는 최종 포장 형태를 작성해 주세요." },
+      {
+        key: "suppliedMaterial", label: "부자재 준비 방식", type: "material", turnkeyKey: "turnkeyMaterial", groups: MATERIAL_GROUPS,
+        hint: "필요한 부자재마다 누가 준비할지 골라 주세요. 사급은 고객이 직접 제공, 턴키는 제조사가 소싱합니다.",
+      },
+      { key: "otherMaterialCond", label: "기타 부자재 조건", type: "textarea", hint: "원하는 부자재의 재질 · 색상 · 형태 · 인쇄 · 후가공 · 특수 사양 등 세부 요청사항을 작성해 주세요. 예) 무광 화이트 용기, 금박 로고, 투명 라벨 등" },
+    ],
+  },
+  {
+    title: "개발 핵심 요청사항",
+    fields: [
+      { key: "additionalNotes", label: "추가 요청사항", type: "textarea", hint: "기타 필요한 사항을 자유롭게 작성해 주세요." },
     ],
   },
 ];
 const ALL_DEV_FIELDS = DEV_FIELD_GROUPS.flatMap(g => g.fields);
 // 값이 배열로 들어가는 입력 유형 — 폼 초기화 · 저장 시 빈 배열로 다뤄야 하는 것들
-const MULTI_VALUE_TYPES = ["multiselect", "list", "relation", "material"];
+const MULTI_VALUE_TYPES = ["multiselect", "list", "skin", "material"];
 
-function Chip({ label, sel, onClick }) {
+function Chip({ label, sel, onClick, dim }) {
   return (
-    <button onClick={onClick} style={{
-      height: 36, padding: "0 13px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
+    <button onClick={onClick} disabled={dim} style={{
+      height: 36, padding: "0 13px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: dim ? "not-allowed" : "pointer", fontFamily: FONT,
       background: sel ? "#111" : "#F4F4F5", color: sel ? "#fff" : "#434343", border: "1.5px solid transparent", whiteSpace: "nowrap",
+      opacity: dim ? 0.4 : 1,
     }}>{label}</button>
   );
 }
 
-function DevField({ f, value, onChange }) {
-  if (f.type === "text" || f.type === "url") {
-    return (
-      <UField label={f.label} req={f.req}>
-        <input value={value || ""} onChange={e => onChange(f.key, f.numeric ? e.target.value.replace(/\D/g, "") : e.target.value)} placeholder={f.placeholder || ""} style={uInpBase} />
-      </UField>
-    );
+// 선택지가 20~32개나 되는 항목(효능 · 수출규제 · 부자재)은 칩을 전부 펼치면 화면이 압도된다.
+// 고른 것만 위에 보여주고, 검색과 접이식 그룹으로 필요한 것만 찾아 고르게 한다.
+const PICKER_THRESHOLD = 12;
+function BigPicker({ options, groups, value, onToggle, max, single }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const sel = value || [];
+  // 하나만 고르는 항목은 다른 선택지를 눌러 바로 바꿀 수 있어야 하므로 잠그지 않는다.
+  const full = !single && max && sel.length >= max;
+  const needle = q.trim().toLowerCase();
+  const sections = (groups || [{ title: "", items: options }])
+    .map(s => ({ ...s, items: s.items.filter(o => !needle || o.toLowerCase().includes(needle)) }))
+    .filter(s => s.items.length > 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      {sel.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {sel.map(o => (
+            <button key={o} onClick={() => onToggle(o)} style={{
+              height: 32, padding: "0 9px 0 12px", borderRadius: 99, border: 0, background: "#111", color: "#fff",
+              fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6,
+            }}>{o}<span style={{ color: "#9A9A9E", fontSize: 12 }}>✕</span></button>
+          ))}
+        </div>
+      )}
+      <button onClick={() => setOpen(v => !v)} style={{
+        height: 42, borderRadius: 13, border: "1.5px solid #E4E4E4", background: "#fff", cursor: "pointer", fontFamily: FONT,
+        fontSize: 13, fontWeight: 800, color: "#434343", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px",
+      }}>
+        <span>{sel.length > 0 ? `${sel.length}개 선택됨 · 고치기` : "목록에서 선택하기"}</span>
+        <span style={{ color: "#B0B0B4", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: 14, background: "#F7F7F8" }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="검색"
+            style={{ height: 38, borderRadius: 10, border: 0, background: "#fff", padding: "0 12px", fontSize: 13.5, fontWeight: 600, fontFamily: FONT, outline: "none" }} />
+          {max && !single && <div style={{ fontSize: 11.5, fontWeight: 700, color: full ? C.accent : "#B0B0B4" }}>최대 {max}개까지 선택할 수 있습니다.</div>}
+          {sections.map(s => (
+            <div key={s.title || "all"} style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {s.title && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#8A8A8E" }}>{s.title}</div>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {s.items.map(o => (
+                  <Chip key={o} label={o} sel={sel.includes(o)} dim={full && !sel.includes(o)} onClick={() => onToggle(o)} />
+                ))}
+              </div>
+            </div>
+          ))}
+          {sections.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>검색 결과가 없습니다.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 사급 · 턴키는 노션에서 같은 32개 목록을 쓴다. 목록을 두 번 보여주면 같은 부자재를 양쪽에
+// 중복 체크하기 쉬워서, 한 목록에서 항목마다 누가 준비할지 고르게 한다.
+function MaterialPicker({ groups, supplied, turnkey, onChange }) {
+  const [openGroup, setOpenGroup] = useState(null);
+  const sup = supplied || [];
+  const turn = turnkey || [];
+  const modeOf = (item) => (sup.includes(item) ? "supplied" : turn.includes(item) ? "turnkey" : "none");
+  const setMode = (item, mode) => {
+    const nextSup = sup.filter(v => v !== item);
+    const nextTurn = turn.filter(v => v !== item);
+    if (mode === "supplied") nextSup.push(item);
+    if (mode === "turnkey") nextTurn.push(item);
+    onChange(nextSup, nextTurn);
+  };
+  const MODES = [{ k: "supplied", label: "사급" }, { k: "turnkey", label: "턴키" }, { k: "none", label: "–" }];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      <div style={{ display: "flex", gap: 8, fontSize: 11.5, fontWeight: 800 }}>
+        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#EAF2FD", color: "#1B5FA8" }}>사급 {sup.length}</span>
+        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#FDF1EC", color: "#B0562A" }}>턴키 {turn.length}</span>
+      </div>
+      {groups.map(g => {
+        const open = openGroup === g.title;
+        const picked = g.items.filter(i => modeOf(i) !== "none").length;
+        return (
+          <div key={g.title} style={{ borderRadius: 14, background: "#F7F7F8", overflow: "hidden" }}>
+            <button onClick={() => setOpenGroup(open ? null : g.title)} style={{
+              width: "100%", border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
+              display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 14px",
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>{g.title}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {picked > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent }}>{picked}</span>}
+                <span style={{ color: "#B0B0B4", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
+              </span>
+            </button>
+            {open && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 14px 13px" }}>
+                {g.items.map(item => {
+                  const mode = modeOf(item);
+                  return (
+                    <div key={item} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: mode === "none" ? "#8A8A8E" : "#111", flex: 1, minWidth: 0 }}>{item}</span>
+                      <span style={{ display: "flex", flex: "none", background: "#fff", borderRadius: 99, padding: 2, gap: 2 }}>
+                        {MODES.map(m => {
+                          const on = mode === m.k && m.k !== "none";
+                          return (
+                            <button key={m.k} onClick={() => setMode(item, m.k)} style={{
+                              border: 0, borderRadius: 99, cursor: "pointer", fontFamily: FONT, fontSize: 11.5, fontWeight: 800,
+                              padding: "6px 11px", background: on ? "#111" : "transparent",
+                              color: on ? "#fff" : mode === m.k ? "#8A8A8E" : "#C4C4C6",
+                            }}>{m.label}</button>
+                          );
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// 필수 적용 원료 · 제외 희망 원료 — 한 줄에 하나씩 추가하고, 노션에는 줄바꿈으로 이어 저장한다.
+function ListInput({ value, onChange, placeholder }) {
+  const rows = value?.length ? value : [""];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      {rows.map((row, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input value={row} placeholder={placeholder || ""} style={{ ...uInpBase, flex: 1 }}
+            onChange={e => onChange(rows.map((r, k) => (k === i ? e.target.value : r)))} />
+          {rows.length > 1 && (
+            <button onClick={() => onChange(rows.filter((_, k) => k !== i))} style={{
+              border: 0, background: "transparent", color: "#C4C4C6", fontSize: 14, cursor: "pointer", fontFamily: FONT, padding: 4,
+            }}>✕</button>
+          )}
+        </div>
+      ))}
+      <button onClick={() => onChange([...rows, ""])} style={{
+        alignSelf: "flex-start", height: 34, padding: "0 14px", borderRadius: 99, cursor: "pointer", fontFamily: FONT,
+        border: "1.5px dashed #C4C4C6", background: "transparent", color: "#434343", fontSize: 12.5, fontWeight: 800,
+      }}>+ 추가</button>
+    </div>
+  );
+}
+
+// 타겟 피부 — 노션 피부타입DB 관계형. 구분을 먼저 고르고 그 안의 세부 타입을 고른다.
+function SkinPicker({ items, value, onChange }) {
+  const [group, setGroup] = useState("");
+  const sel = value || [];
+  const groups = Array.from(new Set(items.flatMap(i => i.groups)));
+  const nameOf = (id) => items.find(i => i.id === id)?.name || "";
+  const inGroup = group ? items.filter(i => i.groups.includes(group)) : [];
+
+  if (items.length === 0) {
+    return <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>피부 타입을 불러오는 중...</div>;
   }
-  if (f.type === "textarea") {
-    return (
-      <UField label={f.label} req={f.req}>
-        <textarea value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={{ ...uInpBase, minHeight: 64, resize: "vertical" }} />
-      </UField>
-    );
-  }
-  if (f.type === "date") {
-    return (
-      <UField label={f.label}>
-        <input type="date" value={value || ""} onChange={e => onChange(f.key, e.target.value)} style={uInpBase} />
-      </UField>
-    );
-  }
-  if (f.type === "select") {
-    return (
-      <UField label={f.label}>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {sel.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {sel.map(id => (
+            <button key={id} onClick={() => onChange(sel.filter(v => v !== id))} style={{
+              height: 32, padding: "0 9px 0 12px", borderRadius: 99, border: 0, background: "#111", color: "#fff",
+              fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6,
+            }}>{nameOf(id)}<span style={{ color: "#9A9A9E", fontSize: 12 }}>✕</span></button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+        {groups.map(g => <Chip key={g} label={g} sel={group === g} onClick={() => setGroup(group === g ? "" : g)} />)}
+      </div>
+      {group && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, padding: 13, borderRadius: 14, background: "#F7F7F8" }}>
+          {inGroup.map(i => (
+            <Chip key={i.id} label={i.name} sel={sel.includes(i.id)}
+              onClick={() => onChange(sel.includes(i.id) ? sel.filter(v => v !== i.id) : [...sel, i.id])} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DevField({ f, value, onChange, form, skinTypes }) {
+  const body = () => {
+    if (f.type === "text" || f.type === "url") {
+      return <input value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={uInpBase} />;
+    }
+    if (f.type === "number") {
+      return (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+          <input value={value || ""} inputMode="numeric" placeholder={f.placeholder || ""} style={{ ...uInpBase, flex: 1 }}
+            onChange={e => onChange(f.key, e.target.value.replace(/[^\d]/g, ""))} />
+          {f.unit && <span style={{ fontSize: 13, fontWeight: 700, color: "#8A8A8E", flex: "none" }}>{f.unit}</span>}
+        </div>
+      );
+    }
+    if (f.type === "textarea") {
+      return <textarea value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={{ ...uInpBase, minHeight: 64, resize: "vertical" }} />;
+    }
+    if (f.type === "date") {
+      return <input type="date" value={value || ""} onChange={e => onChange(f.key, e.target.value)} style={uInpBase} />;
+    }
+    if (f.type === "list") {
+      return <ListInput value={value} placeholder={f.placeholder} onChange={v => onChange(f.key, v)} />;
+    }
+    if (f.type === "skin") {
+      return <SkinPicker items={skinTypes || []} value={value} onChange={v => onChange(f.key, v)} />;
+    }
+    if (f.type === "material") {
+      return (
+        <MaterialPicker groups={f.groups} supplied={value} turnkey={form?.[f.turnkeyKey]}
+          onChange={(sup, turn) => { onChange(f.key, sup); onChange(f.turnkeyKey, turn); }} />
+      );
+    }
+    if (f.type === "select") {
+      if (f.options.length > PICKER_THRESHOLD) {
+        return <BigPicker options={f.options} value={value ? [value] : []} onToggle={o => onChange(f.key, value === o ? "" : o)} single />;
+      }
+      return (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {f.options.map(o => <Chip key={o} label={o} sel={value === o} onClick={() => onChange(f.key, value === o ? "" : o)} />)}
         </div>
-      </UField>
-    );
-  }
-  if (f.type === "multiselect") {
-    const arr = value || [];
-    return (
-      <UField label={f.label}>
+      );
+    }
+    if (f.type === "multiselect") {
+      const arr = value || [];
+      const toggle = (o) => {
+        if (arr.includes(o)) return onChange(f.key, arr.filter(v => v !== o));
+        if (f.max && arr.length >= f.max) return;
+        onChange(f.key, [...arr, o]);
+      };
+      if (f.options.length > PICKER_THRESHOLD || f.groups) {
+        return <BigPicker options={f.options} groups={f.groups} value={arr} onToggle={toggle} max={f.max} />;
+      }
+      return (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {f.options.map(o => {
-            const sel = arr.includes(o);
-            return <Chip key={o} label={o} sel={sel} onClick={() => onChange(f.key, sel ? arr.filter(v => v !== o) : [...arr, o])} />;
-          })}
+          {f.options.map(o => (
+            <Chip key={o} label={o} sel={arr.includes(o)} dim={f.max && arr.length >= f.max && !arr.includes(o)} onClick={() => toggle(o)} />
+          ))}
         </div>
-      </UField>
-    );
-  }
-  return null;
+      );
+    }
+    return null;
+  };
+
+  // "기타 · 직접작성 · 지정색 · 지정향"을 고른 경우에만 직접 입력칸을 띄운다.
+  const otherOn = f.otherKey && (Array.isArray(value) ? value.includes(f.otherWhen) : value === f.otherWhen);
+
+  return (
+    <UField label={f.label} req={f.req} hint={f.hint}>
+      {body()}
+      {otherOn && (
+        <input value={form?.[f.otherKey] || ""} onChange={e => onChange(f.otherKey, e.target.value)}
+          placeholder={f.otherLabel || "직접 입력"} style={{ ...uInpBase, marginTop: 4 }} />
+      )}
+    </UField>
+  );
 }
 const uInpBase = { width: "100%", border: 0, borderBottom: "1.5px solid #E4E4E4", background: "transparent", fontSize: 15, fontWeight: 700, color: "#111", padding: "0 0 9px", outline: "none", fontFamily: FONT };
 // 여러 줄까지 보여주고 그 뒤로만 자른다 — 제형 설명처럼 긴 문장이 한 줄에서 잘려나가지 않도록.
@@ -580,6 +868,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [catalogCat, setCatalogCat] = useState("전체");
   const [catalogGroup, setCatalogGroup] = useState("전체");
   const [pickedItems, setPickedItems] = useState([]);
+  const [skinTypes, setSkinTypes] = useState([]);
   // 06 기획개발의뢰서(간이형) — 선택한 품목별 상세 입력 폼과 현재 작성 중인 품목 인덱스
   const [devForms, setDevForms] = useState([]);
   const [devIdx, setDevIdx] = useState(0);
@@ -627,6 +916,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const blankDevForm = (it) => {
     const f = { itemId: it.id, productName: it.name, productType: it.category, formulation: it.form };
     for (const def of ALL_DEV_FIELDS) {
+      if (def.otherKey && f[def.otherKey] === undefined) f[def.otherKey] = "";
+      if (def.turnkeyKey && f[def.turnkeyKey] === undefined) f[def.turnkeyKey] = [];
       if (f[def.key] !== undefined) continue;
       f[def.key] = MULTI_VALUE_TYPES.includes(def.type) ? [] : "";
     }
@@ -644,6 +935,14 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     if (phase !== "items" || catalog.length > 0) return;
     fetch("/api/catalog").then(r => r.json()).then(d => {
       if (d.success) setCatalog(d.items || []);
+    }).catch(() => {});
+  }, [phase]);
+
+  // 타겟 피부(피부타입DB 관계형) 선택지 — 의뢰서 작성 화면과 전용 페이지 요약 양쪽에서 쓴다.
+  useEffect(() => {
+    if (!["devdetail", "portal"].includes(phase) || skinTypes.length > 0) return;
+    fetch("/api/skintypes").then(r => r.json()).then(d => {
+      if (d.success) setSkinTypes(d.items || []);
     }).catch(() => {});
   }, [phase]);
 
@@ -894,8 +1193,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     setDevIdx(i => (i >= idx && i > 0 ? i - 1 : i));
     setDevStep(0);
   };
+  // 조건이 풀려 숨겨진 입력값이 그대로 남아 제출되던 문제가 있어, 값을 바꿀 때마다 화면에서
+  // 사라진 항목(showIf가 거짓이 된 필드 · 트리거를 해제한 기타 입력칸)을 함께 비운다.
   const updateDevField = (idx, field, value) => {
-    setDevForms(prev => prev.map((f, i) => i === idx ? { ...f, [field]: value } : f));
+    setDevForms(prev => prev.map((f, i) => {
+      if (i !== idx) return f;
+      const next = { ...f, [field]: value };
+      for (const def of ALL_DEV_FIELDS) {
+        if (def.showIf && !def.showIf(next)) next[def.key] = MULTI_VALUE_TYPES.includes(def.type) ? [] : "";
+        if (!def.otherKey) continue;
+        const v = next[def.key];
+        const on = Array.isArray(v) ? v.includes(def.otherWhen) : v === def.otherWhen;
+        if (!on) next[def.otherKey] = "";
+      }
+      return next;
+    }));
   };
 
   // ─── 06 작성한 개발의뢰서(품목별 1건씩) 제출 ───
@@ -1885,22 +2197,26 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               fontSize: 13, fontWeight: 800, whiteSpace: "nowrap",
             }}>+ 품목 추가</button>
           </div>
-          <div style={{ display: "flex", gap: 6, paddingBottom: 12 }}>
+          <div style={{ display: "flex", gap: 4, paddingBottom: 12, marginBottom: 2 }}>
+            {DEV_FIELD_GROUPS.map((g, i) => (
+              <span key={g.title} style={{ flex: 1, height: 4, borderRadius: 99, background: i <= devStep ? C.accent : "#E4E4E4", transition: "background .3s" }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
             {DEV_FIELD_GROUPS.map((g, i) => (
               <button key={g.title} onClick={() => setDevStep(i)} style={{
-                flex: 1, display: "flex", flexDirection: "column", gap: 7, border: 0, background: "transparent",
-                cursor: "pointer", fontFamily: FONT, padding: 0, textAlign: "left",
-              }}>
-                <span style={{ height: 4, borderRadius: 99, background: i <= devStep ? C.accent : "#E4E4E4", transition: "background .3s" }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: i === devStep ? "#111" : "#B0B0B4" }}>{g.title}</span>
-              </button>
+                flex: "none", border: 0, background: i === devStep ? "#111" : "#EFEFF0", borderRadius: 99,
+                cursor: "pointer", fontFamily: FONT, padding: "7px 13px", whiteSpace: "nowrap",
+                fontSize: 12, fontWeight: 800, color: i === devStep ? "#fff" : "#8A8A8E",
+              }}>{i + 1}. {g.title}</button>
             ))}
           </div>
         </div>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "6px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={card2}>
             {group.fields.filter(f => !f.showIf || f.showIf(d)).map(f => (
-              <DevField key={f.key} f={f} value={d[f.key]} onChange={(k, v) => updateDevField(devIdx, k, v)} />
+              <DevField key={f.key} f={f} value={d[f.key]} form={d} skinTypes={skinTypes}
+                onChange={(k, v) => updateDevField(devIdx, k, v)} />
             ))}
           </div>
         </div>
@@ -2193,8 +2509,17 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       { key: "progress", icon: "📈", label: "진행" },
       { key: "alerts", icon: "🔔", label: "알림" },
     ];
-    const fmtFieldValue = (f, v) => {
+    const skinName = (id) => skinTypes.find(s => s.id === id)?.name || "";
+    const fmtFieldValue = (f, v, product) => {
+      if (f.type === "skin") return (v || []).map(skinName).filter(Boolean).join(", ");
+      if (f.type === "material") {
+        const sup = (v || []).join(", ");
+        const turn = (product?.[f.turnkeyKey] || []).join(", ");
+        return [sup && `사급 · ${sup}`, turn && `턴키 · ${turn}`].filter(Boolean).join("\n");
+      }
+      if (f.type === "list") return (v || []).join("\n");
       if (Array.isArray(v)) return v.join(", ");
+      if (f.type === "number" && v !== "" && v != null) return `${Number(v).toLocaleString("ko")}${f.unit || ""}`;
       if (f.type === "date" && v) return new Date(v).toLocaleDateString("ko");
       return v || "";
     };
@@ -2322,7 +2647,17 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               {products.length === 0 && <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>작성된 개발의뢰서가 없습니다.</div>}
               {products.map((p, i) => {
                 const isOpen = expandedProduct === i;
-                const filled = ALL_DEV_FIELDS.filter(f => f.key !== "productName" && p[f.key] && (!Array.isArray(p[f.key]) || p[f.key].length));
+                const filled = ALL_DEV_FIELDS
+                  .filter(f => f.key !== "productName")
+                  .flatMap(f => {
+                    const shown = [];
+                    const v = p[f.key];
+                    const hasValue = Array.isArray(v) ? v.length > 0 : v !== "" && v != null;
+                    // 부자재는 사급이 비어 있어도 턴키만 고른 경우가 있어 두 값을 함께 본다.
+                    if (hasValue || (f.turnkeyKey && p[f.turnkeyKey]?.length)) shown.push({ f, value: fmtFieldValue(f, v, p) });
+                    if (f.otherKey && p[f.otherKey]) shown.push({ f: { ...f, key: f.otherKey, label: f.otherLabel || `${f.label} 직접 입력` }, value: p[f.otherKey] });
+                    return shown.filter(s => s.value);
+                  });
                 return (
                   <div key={i} style={{ borderBottom: i < products.length - 1 ? "1px solid #F0F0F0" : "none" }}>
                     <button onClick={() => setExpandedProduct(isOpen ? null : i)} style={{
@@ -2338,10 +2673,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     {isOpen && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingBottom: 16 }}>
                         {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>작성된 상세 항목이 없습니다.</div>}
-                        {filled.map(f => (
+                        {filled.map(({ f, value }) => (
                           <div key={f.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
                             <span style={{ color: "#8A8A8E", fontWeight: 600, flex: "none" }}>{f.label}</span>
-                            <span style={{ color: "#111", fontWeight: 700, textAlign: "right" }}>{fmtFieldValue(f, p[f.key])}</span>
+                            <span style={{ color: "#111", fontWeight: 700, textAlign: "right", whiteSpace: "pre-line" }}>{value}</span>
                           </div>
                         ))}
                       </div>

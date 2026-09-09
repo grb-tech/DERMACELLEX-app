@@ -25,6 +25,8 @@ export const DB = {
   ESTIMATE: '581b7f81-5640-4884-93b1-f5b5fa70186b',
   // 제조 가견적 항목
   ESTIMATE_ITEM: '0fca38a8-5a8a-48a7-969b-f2993ce553ce',
+  // 피부타입DB (제품개발의뢰서 '타겟피부' 관계 대상)
+  SKINTYPE: '3024c864-7128-8329-976d-816b9f103453',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
@@ -81,17 +83,6 @@ export function cors(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
-// 초도희망수량(자유 숫자 입력) → 제품개발의뢰서 '초도희망수량' select 옵션으로 변환
-export function quantityToBucket(n) {
-  const v = Number(n);
-  if (!v || Number.isNaN(v)) return null;
-  if (v < 1000) return '1000개 미만';
-  if (v < 3000) return '1000~3000개';
-  if (v < 5000) return '3000~5000개';
-  if (v < 10000) return '5000~10000개';
-  return '10000개 이상';
-}
-
 export function text(content) {
   return { rich_text: content ? [{ text: { content: String(content) } }] : [] };
 }
@@ -107,6 +98,13 @@ export function multiSelect(names) {
 export function url(value) {
   const v = (value || '').trim();
   return { url: /^https?:\/\//i.test(v) ? v : null };
+}
+export function number(value) {
+  const n = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+  return { number: Number.isFinite(n) && String(value ?? '').trim() !== '' ? n : null };
+}
+export function relation(ids) {
+  return { relation: (ids || []).filter(Boolean).map(id => ({ id: String(id) })) };
 }
 
 // 한국 법정 공휴일(대체공휴일 포함, 2026~2027) — src/App.jsx의 동일 목록과 맞춰 유지한다.
