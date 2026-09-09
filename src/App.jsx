@@ -890,6 +890,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [portalTab, setPortalTab] = useState("home");
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [expandedEstimate, setExpandedEstimate] = useState(null);
+  const [expandedContract, setExpandedContract] = useState(null);
   const cRef = useRef(null);
 
   const go = (next) => {
@@ -2535,9 +2536,18 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // "아직 없음" 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 ·
   // 등급 · 위험 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
   if (phase === "portal" && portalData) {
-    const { inquiry, client, contact, meeting, products, estimates = [] } = portalData;
+    const { inquiry, client, contact, meeting, products, estimates = [], contracts = [] } = portalData;
     const fmt = (d) => d ? new Date(d).toLocaleString("ko", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
     const fmtMoney = (n, cur) => (typeof n === "number" ? `${n.toLocaleString("ko")}${cur === "USD" ? " USD" : cur === "CNY" ? " CNY" : "원"}` : "-");
+    const fmtDate = (d) => d ? new Date(d).toLocaleDateString("ko") : "-";
+    // 날인 기한까지 D-day. 연장 기한이 있으면 그쪽을 기준으로 삼는다.
+    const ddayOf = (c) => {
+      const deadline = c.extendedDeadline || c.signDeadline;
+      if (!deadline) return null;
+      const diff = Math.ceil((new Date(`${deadline}T00:00:00`) - new Date(new Date().toDateString())) / 86400000);
+      return diff;
+    };
+    const latestContract = contracts[0] || null;
     const STAGES = ["접수", "상담", "견적", "계약", "프로젝트 전환"];
     const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
     const openProducts = products.filter(p => p.status && p.status !== "완료").length;
@@ -2644,6 +2654,24 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 )}
               </button>
             </div>
+
+            {latestContract && (
+              <button onClick={() => setPortalTab("estimate")} style={{
+                textAlign: "left", background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)",
+                border: 0, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 13,
+              }}>
+                <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16, flex: "none" }}>▤</span>
+                <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{latestContract.name || "제조 계약서"}{latestContract.version ? ` v${latestContract.version}` : ""}</span>
+                  <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>
+                    {latestContract.status === "날인 완료" ? `날인 완료 · ${fmtDate(latestContract.signedDate)}` :
+                      ddayOf(latestContract) != null ? `날인 기한까지 D${ddayOf(latestContract) >= 0 ? "-" + ddayOf(latestContract) : "+" + (-ddayOf(latestContract))}` :
+                        latestContract.status || "-"}
+                  </span>
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99, flex: "none" }}>{latestContract.status || "-"}</span>
+              </button>
+            )}
 
             <div style={placeholder}>
               <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
@@ -2818,6 +2846,94 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                           height: 46, borderRadius: 14, background: "#111", color: "#fff", fontSize: 13.5, fontWeight: 800,
                           display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
                         }}>견적서 파일 보기</a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginTop: 4 }}>계약</div>
+            {contracts.length === 0 && (
+              <div style={placeholder}>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 발송된 계약이 없습니다. 견적 협의가 끝나면 이곳에 공개됩니다.</div>
+              </div>
+            )}
+            {contracts.map((c, i) => {
+              const isOpen = expandedContract === i;
+              const dday = ddayOf(c);
+              const pending = c.status && !["날인 완료", "14일 내 미날인 종료", "취소"].includes(c.status);
+              return (
+                <div key={c.id || i} style={card2}>
+                  <button onClick={() => setExpandedContract(isOpen ? null : i)} style={{
+                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                    border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left", padding: 0,
+                  }}>
+                    <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        {c.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{c.uid}</span>}
+                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name || "계약"}{c.version ? ` v${c.version}` : ""}</span>
+                      </span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: c.status === "날인 완료" ? "#1F6B4A" : dday != null && pending ? (dday >= 0 ? "#EA5C2A" : "#D33") : "#8A8A8E" }}>
+                        {c.status === "날인 완료" ? `날인 완료 · ${fmtDate(c.signedDate)}` :
+                          dday != null && pending ? (dday >= 0 ? `날인 기한까지 D-${dday}` : `기한 경과 D+${-dday}`) :
+                            "-"}
+                      </span>
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{c.status || "-"}</span>
+                      <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                        {c.sentDate && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>계약서 발송일</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.sentDate)}</span>
+                          </div>
+                        )}
+                        {c.signDeadline && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>날인 기한</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.signDeadline)}</span>
+                          </div>
+                        )}
+                        {c.extendedDeadline && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>연장된 기한</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.extendedDeadline)}</span>
+                          </div>
+                        )}
+                        {c.signedDate && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>날인일</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.signedDate)}</span>
+                          </div>
+                        )}
+                        {c.endDate && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>종료일</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.endDate)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {(c.customerNote || c.terms || c.endReason) && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, background: "#F7F7F7", borderRadius: 12, padding: 12 }}>
+                          {c.customerNote && <div>{c.customerNote}</div>}
+                          {c.terms && <div>계약 조건: {c.terms}</div>}
+                          {c.endReason && <div>종료 사유: {c.endReason}</div>}
+                        </div>
+                      )}
+
+                      {c.fileUrl && (
+                        <a href={c.fileUrl} target="_blank" rel="noreferrer" style={{
+                          height: 46, borderRadius: 14, background: "#111", color: "#fff", fontSize: 13.5, fontWeight: 800,
+                          display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+                        }}>계약서 파일 보기</a>
                       )}
                     </div>
                   )}

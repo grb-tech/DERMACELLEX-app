@@ -114,6 +114,29 @@ function mapEstimateItem(p) {
   };
 }
 
+// 계약도 가견적과 같은 방식 — 담당자가 "고객 공개"를 체크한 것만 보여준다. 날인·서명 처리는
+// 앱에 두지 않고(전자서명 법적 효력 기준 미확정), 상태·기한·파일만 읽기 전용으로 노출한다.
+function mapContract(p) {
+  const pr = p.properties || {};
+  const files = plain(pr['계약서 파일'], 'files');
+  return {
+    id: p.id,
+    name: plain(pr['계약명'], 'title'),
+    uid: plain(pr['계약 ID'], 'unique_id'),
+    version: plain(pr['버전'], 'number'),
+    status: plain(pr['상태'], 'select'),
+    sentDate: plain(pr['계약서 발송일'], 'date'),
+    signDeadline: plain(pr['날인 기한'], 'date'),
+    signedDate: plain(pr['날인일'], 'date'),
+    extendedDeadline: plain(pr['연장 기한'], 'date'),
+    endDate: plain(pr['종료일'], 'date'),
+    endReason: plain(pr['종료 사유'], 'text'),
+    terms: plain(pr['계약 조건'], 'text'),
+    customerNote: plain(pr['고객 안내사항'], 'text'),
+    fileUrl: files[0] || '',
+  };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -159,7 +182,7 @@ export default async function handler(req, res) {
     }
     // 미팅 · 제품개발의뢰서는 문의 1건이 아니라 거래처 전체 기준으로 모은다 — 문의를 여러 번
     // 넣은 거래처도 예전 의뢰서 · 예전 상담까지 전용 페이지에서 전부 보이도록.
-    const [meetings, devreqs, clientPage, contactPage, estimateHeaders, estimateItems] = await Promise.all([
+    const [meetings, devreqs, clientPage, contactPage, estimateHeaders, estimateItems, contracts] = await Promise.all([
       queryDb(TOKEN, DB.MEETING, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
       queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
@@ -179,6 +202,13 @@ export default async function handler(req, res) {
           { property: '고객 공개', checkbox: { equals: true } },
         ],
       }, [{ property: '정렬 순서', direction: 'ascending' }]),
+      // 계약도 동일 기준 — 담당자가 "고객 공개"를 체크한 버전만 노출한다.
+      queryDb(TOKEN, DB.CONTRACT, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 공개', checkbox: { equals: true } },
+        ],
+      }, [{ timestamp: 'created_time', direction: 'descending' }]),
     ]);
 
     const latestMeeting = (meetings.results || [])[0];
@@ -228,6 +258,7 @@ export default async function handler(req, res) {
       } : null,
       products: (devreqs.results || []).map(mapProductDetail),
       estimates,
+      contracts: (contracts.results || []).map(mapContract),
     });
   } catch (err) {
     console.error('Portal Login Error:', err);
