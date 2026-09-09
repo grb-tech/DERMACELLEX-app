@@ -60,6 +60,46 @@ function mapProductDetail(p) {
   };
 }
 
+// 가견적/가견적 항목은 담당자가 Notion에서 확정한 값만 "고객 공개" 체크가 된 것을 그대로
+// 보여준다 — 단가·합계 계산 로직은 앱에 두지 않는다.
+function mapEstimateHeader(p) {
+  const pr = p.properties || {};
+  const files = plain(pr['견적서 파일'], 'files');
+  return {
+    id: p.id,
+    name: plain(pr['가견적명'], 'title'),
+    uid: plain(pr['가견적 ID'], 'unique_id'),
+    version: plain(pr['버전'], 'number'),
+    status: plain(pr['상태'], 'select'),
+    quoteDate: plain(pr['견적일'], 'date'),
+    validUntil: plain(pr['유효기간'], 'date'),
+    currency: plain(pr['통화'], 'select'),
+    supplyAmount: plain(pr['공급가액'], 'number'),
+    taxAmount: plain(pr['세액'], 'number'),
+    totalAmount: plain(pr['총액'], 'number'),
+    includeNote: plain(pr['포함 조건'], 'text'),
+    excludeNote: plain(pr['제외 조건'], 'text'),
+    customerNote: plain(pr['고객 안내사항'], 'text'),
+    fileUrl: files[0] || '',
+  };
+}
+
+function mapEstimateItem(p) {
+  const pr = p.properties || {};
+  return {
+    id: p.id,
+    estimateIds: plain(pr['제조 가견적'], 'relation'),
+    name: plain(pr['견적 항목명'], 'title'),
+    type: plain(pr['항목 유형'], 'select'),
+    costType: plain(pr['비용 유형'], 'select'),
+    quantity: plain(pr['수량'], 'number'),
+    unitPrice: plain(pr['단가'], 'number'),
+    amount: plain(pr['금액'], 'number'),
+    spec: plain(pr['규격·사양'], 'text'),
+    sortOrder: plain(pr['정렬 순서'], 'number'),
+  };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -129,16 +169,43 @@ export default async function handler(req, res) {
     }
     // 미팅 · 제품개발의뢰서는 문의 1건이 아니라 거래처 전체 기준으로 모은다 — 문의를 여러 번
     // 넣은 거래처도 예전 의뢰서 · 예전 상담까지 전용 페이지에서 전부 보이도록.
-    const [meetings, devreqs, clientPage, contactPage] = await Promise.all([
+    const [meetings, devreqs, clientPage, contactPage, estimateHeaders, estimateItems] = await Promise.all([
       queryDb(TOKEN, DB.MEETING, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
       queryDb(TOKEN, DB.DEVREQUEST, { property: '제조 의뢰 거래처', relation: { contains: clientId } },
         [{ timestamp: 'created_time', direction: 'descending' }]),
       notionCall(TOKEN, 'GET', `/pages/${clientId}`).catch(() => null),
       notionCall(TOKEN, 'GET', `/pages/${contactId}`).catch(() => null),
+      // 가견적은 담당자가 "고객 공개"를 체크한 것만 보여준다 — 작성 중인 초안은 노출하지 않는다.
+      queryDb(TOKEN, DB.ESTIMATE, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 공개', checkbox: { equals: true } },
+        ],
+      }, [{ timestamp: 'created_time', direction: 'descending' }]),
+      queryDb(TOKEN, DB.ESTIMATE_ITEM, {
+        and: [
+          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+          { property: '고객 공개', checkbox: { equals: true } },
+        ],
+      }, [{ property: '정렬 순서', direction: 'ascending' }]),
     ]);
 
     const latestMeeting = (meetings.results || [])[0];
+
+    // 가견적 항목을 소속 가견적(헤더) ID별로 묶는다.
+    const itemsByEstimate = {};
+    for (const itemPage of (estimateItems.results || [])) {
+      const mapped = mapEstimateItem(itemPage);
+      for (const eid of mapped.estimateIds) {
+        (itemsByEstimate[eid] ||= []).push(mapped);
+      }
+    }
+    const estimates = (estimateHeaders.results || []).map(h => {
+      const header = mapEstimateHeader(h);
+      const items = (itemsByEstimate[h.id] || []).map(({ estimateIds, ...rest }) => rest);
+      return { ...header, items };
+    });
 
     // '제조 문의명'은 "[INQ-xxx] 회사명 | 제조개발 문의" 형태라 고유 ID · 회사명과 겹친다 —
     // 둘 다 이미 화면에 따로 나오니, 마지막 " | " 뒤쪽(문의 유형)만 표시용으로 뽑아 쓴다.
@@ -170,6 +237,7 @@ export default async function handler(req, res) {
         zoomLink: plain(latestMeeting.properties?.['ZOOM Link'], 'url'),
       } : null,
       products: (devreqs.results || []).map(mapProductDetail),
+      estimates,
     });
   } catch (err) {
     console.error('Portal Login Error:', err);

@@ -21,6 +21,10 @@ export const DB = {
   CATALOG: '56544524-d8f6-45b3-a1ac-4a4813622546',
   // 고객 페이지 접근 이력 (전용 페이지 6자리 코드)
   ACCESS: '3d14c864-7128-80e8-9aa3-dc242a6f801c',
+  // 제조 가견적
+  ESTIMATE: '581b7f81-5640-4884-93b1-f5b5fa70186b',
+  // 제조 가견적 항목
+  ESTIMATE_ITEM: '0fca38a8-5a8a-48a7-969b-f2993ce553ce',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
@@ -40,6 +44,11 @@ export function plain(prop, kind) {
   if (kind === 'date') return prop.date?.start || '';
   if (kind === 'url') return prop.url || '';
   if (kind === 'multi_select') return (prop.multi_select || []).map(o => o.name);
+  if (kind === 'number') return prop.number ?? null;
+  if (kind === 'checkbox') return !!prop.checkbox;
+  if (kind === 'files') return (prop.files || []).map(f => f.file?.url || f.external?.url).filter(Boolean);
+  if (kind === 'unique_id') return prop.unique_id ? `${prop.unique_id.prefix || ''}${prop.unique_id.number ?? ''}` : '';
+  if (kind === 'relation') return (prop.relation || []).map(r => r.id);
   return '';
 }
 

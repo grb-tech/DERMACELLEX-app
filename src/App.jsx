@@ -589,6 +589,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [portalSynced, setPortalSynced] = useState(null);
   const [portalTab, setPortalTab] = useState("home");
   const [expandedProduct, setExpandedProduct] = useState(null);
+  const [expandedEstimate, setExpandedEstimate] = useState(null);
   const cRef = useRef(null);
 
   useEffect(() => {
@@ -2094,12 +2095,14 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   }
 
   // ━━━━━━━━━━ PHASE: PORTAL (제조사 OS 앱.dc.html · 09 대시보드 기준, 하단 탭 포함) ━━━━━━━━━━
-  // 가견적 · 계약 · 제조 프로젝트(디자인 10~12번 화면)는 아직 DB 연동을 안 붙여서 "아직 없음"
-  // 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 · 등급 · 위험
-  // 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
+  // 가견적은 담당자가 Notion에서 "고객 공개"로 체크한 것만 그대로 보여준다(단가·합계 계산은
+  // 앱에 두지 않음). 계약 · 제조 프로젝트(디자인 11~12번 화면)는 아직 DB 연동을 안 붙여서
+  // "아직 없음" 자리표시로 남겨둔다 — 실제로 없는 데이터를 지어내지 않기 위함. 진단 점수 ·
+  // 등급 · 위험 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
   if (phase === "portal" && portalData) {
-    const { inquiry, client, contact, meeting, products } = portalData;
+    const { inquiry, client, contact, meeting, products, estimates = [] } = portalData;
     const fmt = (d) => d ? new Date(d).toLocaleString("ko", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
+    const fmtMoney = (n, cur) => (typeof n === "number" ? `${n.toLocaleString("ko")}${cur === "USD" ? " USD" : cur === "CNY" ? " CNY" : "원"}` : "-");
     const STAGES = ["접수", "상담", "견적", "계약", "프로젝트 전환"];
     const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
     const openProducts = products.filter(p => p.status && p.status !== "완료").length;
@@ -2183,10 +2186,19 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                   {openProducts > 0 ? `진행 중 ${openProducts}건` : products.length > 0 ? "전체 완료" : "작성된 의뢰서 없음"}
                 </div>
               </button>
-              <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+              <button onClick={() => setPortalTab("estimate")} style={{ textAlign: "left", background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: 0, cursor: "pointer", fontFamily: FONT }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>가견적</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
-              </div>
+                {estimates.length === 0 ? (
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
+                      {estimates.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.accent, marginTop: 4 }}>{estimates[0].status || "-"}</div>
+                  </>
+                )}
+              </button>
             </div>
 
             <div style={placeholder}>
@@ -2260,12 +2272,99 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             </div>
           </>)}
 
-          {portalTab === "estimate" && (
-            <div style={placeholder}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>가견적</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 생성된 가견적이 없습니다. 담당자 검토 후 이곳에 공개됩니다.</div>
-            </div>
-          )}
+          {portalTab === "estimate" && (<>
+            {estimates.length === 0 && (
+              <div style={placeholder}>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>가견적</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 생성된 가견적이 없습니다. 담당자 검토 후 이곳에 공개됩니다.</div>
+              </div>
+            )}
+            {estimates.map((e, i) => {
+              const isOpen = expandedEstimate === i;
+              return (
+                <div key={e.id || i} style={card2}>
+                  <button onClick={() => setExpandedEstimate(isOpen ? null : i)} style={{
+                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                    border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left", padding: 0,
+                  }}>
+                    <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        {e.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{e.uid}</span>}
+                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name || "가견적"}{e.version ? ` v${e.version}` : ""}</span>
+                      </span>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.6 }}>{fmtMoney(e.totalAmount, e.currency)}</span>
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{e.status || "-"}</span>
+                      <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                        {e.quoteDate && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>견적일</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.quoteDate).toLocaleDateString("ko")}</span>
+                          </div>
+                        )}
+                        {e.validUntil && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>유효기간</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.validUntil).toLocaleDateString("ko")}까지</span>
+                          </div>
+                        )}
+                        {typeof e.supplyAmount === "number" && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>공급가액</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtMoney(e.supplyAmount, e.currency)}</span>
+                          </div>
+                        )}
+                        {typeof e.taxAmount === "number" && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>세액</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{fmtMoney(e.taxAmount, e.currency)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {e.items.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 0, borderTop: "1px solid #F0F0F0" }}>
+                          {e.items.map((it, j) => (
+                            <div key={it.id || j} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: j < e.items.length - 1 ? "1px solid #F5F5F5" : "none" }}>
+                              <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{it.name || it.type || "항목"}</span>
+                                <span style={{ fontSize: 11.5, color: "#8A8A8E", fontWeight: 600 }}>
+                                  {[it.type, it.spec, it.quantity ? `${it.quantity.toLocaleString("ko")}개` : null].filter(Boolean).join(" · ") || "-"}
+                                </span>
+                              </span>
+                              <span style={{ fontSize: 13.5, fontWeight: 800, color: "#111", flex: "none" }}>{fmtMoney(it.amount, e.currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {(e.includeNote || e.excludeNote || e.customerNote) && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, background: "#F7F7F7", borderRadius: 12, padding: 12 }}>
+                          {e.customerNote && <div>{e.customerNote}</div>}
+                          {e.includeNote && <div>포함: {e.includeNote}</div>}
+                          {e.excludeNote && <div>제외: {e.excludeNote}</div>}
+                        </div>
+                      )}
+
+                      {e.fileUrl && (
+                        <a href={e.fileUrl} target="_blank" rel="noreferrer" style={{
+                          height: 46, borderRadius: 14, background: "#111", color: "#fff", fontSize: 13.5, fontWeight: 800,
+                          display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+                        }}>견적서 파일 보기</a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>)}
           {portalTab === "progress" && (
             <div style={placeholder}>
               <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>진행 상황</div>
