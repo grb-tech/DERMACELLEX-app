@@ -875,6 +875,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const [devStep, setDevStep] = useState(0);
   // 진단은 한 문의당 한 번만 기록한다 — 뒤로 갔다 다시 진행해도 중복 저장되지 않도록.
   const [diagnosisDone, setDiagnosisDone] = useState(false);
+  // 전용 페이지에서 기존 의뢰서를 고치는 중이면 해당 노션 페이지 ID가 들어간다(신규 작성이면 null).
+  const [editingPageId, setEditingPageId] = useState(null);
   // 전용 페이지 접근 코드(상담 신청 시 1회 발급) · 로그인 입력값 · 로그인 후 받아온 전용 페이지 데이터
   const [accessCode, setAccessCode] = useState("");
   const [codeEmailed, setCodeEmailed] = useState(false);
@@ -911,6 +913,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     setDevStep(0);
     setReg(null);
     setDiagnosisDone(false);
+    setEditingPageId(null);
     setPhaseStack([]);
   };
   const blankDevForm = (it) => {
@@ -1180,6 +1183,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // 품목을 추가·삭제하고 다시 돌아올 수 있으므로, 이미 작성한 내용은 itemId 기준으로 보존한다.
   const goToDevDetail = () => {
     if (pickedItems.length === 0) return;
+    setEditingPageId(null);
     setDevForms(prev => pickedItems.map(it => prev.find(f => f.itemId === it.id) || blankDevForm(it)));
     setDevIdx(i => Math.min(i, pickedItems.length - 1));
     setDevStep(0);
@@ -1210,8 +1214,40 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     }));
   };
 
+  // ─── 전용 페이지에서 이미 제출한 의뢰서 고치기 (상태가 '시작 전'일 때만) ───
+  const startEditingProduct = (product) => {
+    setEditingPageId(product.id);
+    setDevForms([{ ...blankDevForm({ id: product.itemId, name: product.name, category: "", form: "" }), ...product, productName: product.name }]);
+    setDevIdx(0);
+    setDevStep(0);
+    go("devdetail");
+  };
+  const submitProductEdit = async () => {
+    setSubmitSt("loading");
+    try {
+      const res = await fetch("/api/devform-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: portalEmail.trim(), code: portalCode.trim(), pageId: editingPageId, product: devForms[0] }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "서버 오류");
+      setSubmitSt(null);
+      setEditingPageId(null);
+      setDevForms([]);
+      setPhaseStack([]);
+      setPhase("portal");
+      refreshPortalData();
+    } catch (err) {
+      console.error("DevDetail edit error:", err);
+      setSubmitSt("error");
+      setTimeout(() => setSubmitSt(null), 3000);
+    }
+  };
+
   // ─── 06 작성한 개발의뢰서(품목별 1건씩) 제출 ───
   const submitDevDetails = async () => {
+    if (editingPageId) return submitProductEdit();
     setSubmitSt("loading");
     try {
       const res = await fetch("/api/devform", {
@@ -2163,10 +2199,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <style>{css}</style>
         <div style={{ flex: "none", padding: "14px 20px 0" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
-            <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.7 }}>기획개발의뢰서</span>
-            <span style={{ fontSize: 12.5, fontWeight: 800, color: C.accent }}>{devIdx + 1} / {devForms.length}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.7 }}>
+              기획개발의뢰서{editingPageId ? " 수정" : ""}
+            </span>
+            {!editingPageId && <span style={{ fontSize: 12.5, fontWeight: 800, color: C.accent }}>{devIdx + 1} / {devForms.length}</span>}
           </div>
-          <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 10 }}>
+          <div style={{ display: editingPageId ? "none" : "flex", gap: 7, overflowX: "auto", paddingBottom: 10 }}>
             {devForms.map((f, i) => {
               const active = i === devIdx;
               return (
@@ -2235,8 +2273,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
               opacity: (!d.productName.trim() || submitSt === "loading") ? 0.6 : 1,
             }}>
-            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" :
-              !isLastStep ? "다음" : !isLastItem ? "다음 품목" : `의뢰서 ${devForms.length}건 제출하고 상담 신청`}
+            {submitSt === "loading" ? "저장 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" :
+              !isLastStep ? "다음" : !isLastItem ? "다음 품목" :
+                editingPageId ? "수정 내용 저장" : `의뢰서 ${devForms.length}건 제출하고 상담 신청`}
           </button>
         </div>
       </div>
@@ -2672,6 +2711,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     </button>
                     {isOpen && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingBottom: 16 }}>
+                        {p.status === "시작 전" && (
+                          <button onClick={() => startEditingProduct(p)} style={{
+                            alignSelf: "flex-start", height: 36, padding: "0 14px", borderRadius: 99, cursor: "pointer", fontFamily: FONT,
+                            border: "1.5px solid #E4E4E4", background: "#fff", color: "#434343", fontSize: 12.5, fontWeight: 800,
+                          }}>수정하기</button>
+                        )}
                         {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>작성된 상세 항목이 없습니다.</div>}
                         {filled.map(({ f, value }) => (
                           <div key={f.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>

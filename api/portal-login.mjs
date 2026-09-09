@@ -6,8 +6,8 @@
 // sha256(code:거래처ID)). 로그인에 성공하면 그 거래처의 가장 최근 문의를 대시보드에 보여준다.
 // 원본 코드를 저장하지 않으므로 후보마다 같은 방식으로 해시를 다시 계산해 대조한다.
 
-import crypto from 'crypto';
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
+import { findAccessMatch } from './_access.mjs';
 
 // 제품개발의뢰서 상세를 고객이 직접 확인할 수 있도록, 프론트(App.jsx의 DEV_FIELD_GROUPS)와
 // 같은 키로 전체 속성을 돌려준다. 값이 없는 필드는 프론트에서 알아서 숨긴다.
@@ -129,32 +129,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: '이메일과 6자리 코드를 정확히 입력해주세요.' });
     }
 
-    const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '이메일', email: { equals: email } });
-    const contactList = contacts.results || [];
-    if (contactList.length === 0) {
-      return res.status(401).json({ success: false, error: '일치하는 정보를 찾을 수 없습니다.' });
-    }
-
-    let matched = null;
-    let lastCandidate = null;
-    for (const contactPage of contactList) {
-      const clientId = contactPage.properties?.['거래처명']?.relation?.[0]?.id;
-      if (!clientId) continue;
-
-      const access = await queryDb(TOKEN, DB.ACCESS, {
-        and: [
-          { property: '제조 의뢰 거래처', relation: { contains: clientId } },
-          { property: '코드 폐기', checkbox: { equals: false } },
-        ],
-      }, [{ timestamp: 'created_time', direction: 'descending' }]);
-
-      const rec = (access.results || [])[0];
-      if (!rec) continue;
-      lastCandidate = rec;
-      const expect = crypto.createHash('sha256').update(`${code}:${clientId}`).digest('hex');
-      const stored = plain(rec.properties?.['코드 검증값'], 'text');
-      if (stored && stored === expect) { matched = { rec, clientId, contactId: contactPage.id }; break; }
-    }
+    const { rec, clientId: matchedClientId, contactId: matchedContactId, lastCandidate } = await findAccessMatch(TOKEN, email, code);
+    const matched = rec ? { rec, clientId: matchedClientId, contactId: matchedContactId } : null;
 
     const today = new Date().toISOString().substring(0, 10);
 

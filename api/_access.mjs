@@ -23,6 +23,32 @@ export function baseUrl() {
     : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dermacellex-sxip.vercel.app';
 }
 
+// 이메일 + 6자리 코드 검증 — 전용 페이지 로그인과 의뢰서 수정이 같은 기준을 쓰도록 한곳에 둔다.
+// 원본 코드를 대조하지 않고 sha256(code:거래처ID) 해시로만 맞춘다.
+export async function findAccessMatch(TOKEN, email, code) {
+  const contacts = await queryDb(TOKEN, DB.CONTACT, { property: '이메일', email: { equals: email } });
+  let lastCandidate = null;
+  for (const contactPage of (contacts.results || [])) {
+    const clientId = contactPage.properties?.['거래처명']?.relation?.[0]?.id;
+    if (!clientId) continue;
+
+    const access = await queryDb(TOKEN, DB.ACCESS, {
+      and: [
+        { property: '제조 의뢰 거래처', relation: { contains: clientId } },
+        { property: '코드 폐기', checkbox: { equals: false } },
+      ],
+    }, [{ timestamp: 'created_time', direction: 'descending' }]);
+
+    const rec = (access.results || [])[0];
+    if (!rec) continue;
+    lastCandidate = rec;
+    const expect = crypto.createHash('sha256').update(`${code}:${clientId}`).digest('hex');
+    const stored = plain(rec.properties?.['코드 검증값'], 'text');
+    if (stored && stored === expect) return { rec, clientId, contactId: contactPage.id, lastCandidate };
+  }
+  return { rec: null, lastCandidate };
+}
+
 export async function issueAccessCode(TOKEN, { inquiryId, clientId, contactId, businessName, contactEmail }) {
   if (!clientId) throw new Error('issueAccessCode: clientId가 필요합니다.');
 
