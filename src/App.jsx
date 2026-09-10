@@ -2910,8 +2910,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                       {(e.includeNote || e.excludeNote || e.customerNote) && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, background: "#F7F7F7", borderRadius: 12, padding: 12 }}>
                           {e.customerNote && <div>{e.customerNote}</div>}
-                          {e.includeNote && <div>포함: {e.includeNote}</div>}
-                          {e.excludeNote && <div>제외: {e.excludeNote}</div>}
+                          {e.includeNote && <div>{t("포함", "Included")}: {e.includeNote}</div>}
+                          {e.excludeNote && <div>{t("제외", "Excluded")}: {e.excludeNote}</div>}
                         </div>
                       )}
 
@@ -2919,7 +2919,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                         <a href={e.fileUrl} target="_blank" rel="noreferrer" style={{
                           height: 46, borderRadius: 14, background: "#111", color: "#fff", fontSize: 13.5, fontWeight: 800,
                           display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
-                        }}>견적서 파일 보기</a>
+                        }}>{t("견적서 파일 보기", "View Estimate File")}</a>
                       )}
                     </div>
                   )}
@@ -2927,10 +2927,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               );
             })}
 
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginTop: 4 }}>계약</div>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginTop: 4 }}>{t("계약", "Contract")}</div>
             {contracts.length === 0 && (
               <div style={placeholder}>
-                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 발송된 계약이 없습니다. 견적 협의가 끝나면 이곳에 공개됩니다.</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("아직 발송된 계약이 없습니다. 견적 협의가 끝나면 이곳에 공개됩니다.", "No contract has been sent yet. It will appear here once the estimate is finalized.")}</div>
               </div>
             )}
             {contracts.map((c, i) => {
@@ -2946,16 +2946,16 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                         {c.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{c.uid}</span>}
-                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name || "계약"}{c.version ? ` v${c.version}` : ""}</span>
+                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name || t("계약", "Contract")}{c.version ? ` v${c.version}` : ""}</span>
                       </span>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: c.status === "날인 완료" ? "#1F6B4A" : dday != null && pending ? (dday >= 0 ? "#EA5C2A" : "#D33") : "#8A8A8E" }}>
-                        {c.status === "날인 완료" ? `날인 완료 · ${fmtDate(c.signedDate)}` :
-                          dday != null && pending ? (dday >= 0 ? `날인 기한까지 D-${dday}` : `기한 경과 D+${-dday}`) :
+                        {c.status === "날인 완료" ? `${t("날인 완료 · ", "Signed · ")}${fmtDate(c.signedDate)}` :
+                          dday != null && pending ? (dday >= 0 ? t(`날인 기한까지 D-${dday}`, `D-${dday} to sign`) : t(`기한 경과 D+${-dday}`, `D+${-dday} overdue`)) :
                             "-"}
                       </span>
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{c.status || "-"}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{c.status ? t(c.status) : "-"}</span>
                       <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
                     </span>
                   </button>
@@ -2965,31 +2965,31 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                         {c.sentDate && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>계약서 발송일</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("계약서 발송일", "Contract Sent")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.sentDate)}</span>
                           </div>
                         )}
                         {c.signDeadline && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>날인 기한</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("날인 기한", "Signing Deadline")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.signDeadline)}</span>
                           </div>
                         )}
                         {c.extendedDeadline && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>연장된 기한</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("연장된 기한", "Extended Deadline")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.extendedDeadline)}</span>
                           </div>
                         )}
                         {c.signedDate && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>날인일</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("날인일", "Signed Date")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.signedDate)}</span>
                           </div>
                         )}
                         {c.endDate && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>종료일</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("종료일", "End Date")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtDate(c.endDate)}</span>
                           </div>
                         )}
@@ -2998,8 +2998,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                       {(c.customerNote || c.terms || c.endReason) && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, background: "#F7F7F7", borderRadius: 12, padding: 12 }}>
                           {c.customerNote && <div>{c.customerNote}</div>}
-                          {c.terms && <div>계약 조건: {c.terms}</div>}
-                          {c.endReason && <div>종료 사유: {c.endReason}</div>}
+                          {c.terms && <div>{t("계약 조건", "Contract Terms")}: {c.terms}</div>}
+                          {c.endReason && <div>{t("종료 사유", "End Reason")}: {c.endReason}</div>}
                         </div>
                       )}
 
@@ -3007,7 +3007,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                         <a href={c.fileUrl} target="_blank" rel="noreferrer" style={{
                           height: 46, borderRadius: 14, background: "#111", color: "#fff", fontSize: 13.5, fontWeight: 800,
                           display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
-                        }}>계약서 파일 보기</a>
+                        }}>{t("계약서 파일 보기", "View Contract File")}</a>
                       )}
                     </div>
                   )}
@@ -3018,8 +3018,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           {portalTab === "progress" && (<>
             {projects.length === 0 && (
               <div style={placeholder}>
-                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>진행 상황</div>
-                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 제품별 진행 타임라인이 여기에 표시됩니다.</div>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>{t("진행 상황", "Progress")}</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("계약 완료 후 제품별 진행 타임라인이 여기에 표시됩니다.", "The per-product progress timeline will appear here once your contract is signed.")}</div>
               </div>
             )}
             {projects.length > 1 && (
@@ -3029,7 +3029,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     flex: "none", height: 38, padding: "0 14px", borderRadius: 12, cursor: "pointer", fontFamily: FONT,
                     border: 0, fontSize: 12.5, fontWeight: 800,
                     background: activeProject === i ? "#111" : "#fff", color: activeProject === i ? "#fff" : "#8A8A8E",
-                  }}>{p.name || `프로젝트 ${i + 1}`}</button>
+                  }}>{p.name || t(`프로젝트 ${i + 1}`, `Project ${i + 1}`)}</button>
                 ))}
               </div>
             )}
@@ -3040,9 +3040,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               return (
                 <>
                   <div style={{ borderRadius: 22, padding: "18px 20px 22px", background: "#111", color: "#fff" }}>
-                    <div style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{proj.uid ? `${proj.uid} · ` : ""}{proj.name || "제조 프로젝트"}</div>
+                    <div style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{proj.uid ? `${proj.uid} · ` : ""}{proj.name || t("제조 프로젝트", "Manufacturing Project")}</div>
                     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 12 }}>
-                      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.6 }}>{proj.currentStage || proj.status || "-"}</div>
+                      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.6 }}>{proj.currentStage ? t(proj.currentStage) : proj.status ? t(proj.status) : "-"}</div>
                       {pct != null && <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1, color: C.accent }}>{pct}%</div>}
                     </div>
                     {pct != null && (
