@@ -2556,9 +2556,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   // 등급 · 위험 플래그는 /api/portal-login 응답에 애초에 포함되지 않으므로 여기서도 노출되지 않는다.
   if (phase === "portal" && portalData) {
     const { inquiry, client, contact, meeting, products, estimates = [], contracts = [], projects = [], notifications = [] } = portalData;
-    const fmt = (d) => d ? new Date(d).toLocaleString("ko", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
-    const fmtMoney = (n, cur) => (typeof n === "number" ? `${n.toLocaleString("ko")}${cur === "USD" ? " USD" : cur === "CNY" ? " CNY" : "원"}` : "-");
-    const fmtDate = (d) => d ? new Date(d).toLocaleDateString("ko") : "-";
+    const locale = lang === "en" ? "en-US" : "ko";
+    const fmt = (d) => d ? new Date(d).toLocaleString(locale, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
+    const fmtMoney = (n, cur) => (typeof n === "number" ? `${n.toLocaleString(locale)}${cur === "USD" ? " USD" : cur === "CNY" ? " CNY" : (lang === "en" ? " KRW" : "원")}` : "-");
+    const fmtDate = (d) => d ? new Date(d).toLocaleDateString(locale) : "-";
     // 날인 기한까지 D-day. 연장 기한이 있으면 그쪽을 기준으로 삼는다.
     const ddayOf = (c) => {
       const deadline = c.extendedDeadline || c.signDeadline;
@@ -2610,11 +2611,11 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     const stageIdx = Math.max(0, STAGES.indexOf(inquiry.status));
     const openProducts = products.filter(p => p.status && p.status !== "완료").length;
     const TABS = [
-      { key: "home", icon: "🏠", label: "홈" },
-      { key: "inquiry", icon: "📄", label: "문의" },
-      { key: "estimate", icon: "💰", label: "견적" },
-      { key: "progress", icon: "📈", label: "진행" },
-      { key: "alerts", icon: "🔔", label: "알림" },
+      { key: "home", icon: "🏠", label: t("홈", "Home") },
+      { key: "inquiry", icon: "📄", label: t("문의", "Inquiry") },
+      { key: "estimate", icon: "💰", label: t("견적", "Quote") },
+      { key: "progress", icon: "📈", label: t("진행", "Progress") },
+      { key: "alerts", icon: "🔔", label: t("알림", "Alerts") },
     ];
     const skinName = (id) => skinTypes.find(s => s.id === id)?.name || "";
     const fmtFieldValue = (f, v, product) => {
@@ -2622,21 +2623,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       if (f.type === "material") {
         const sup = (v || []).join(", ");
         const turn = (product?.[f.turnkeyKey] || []).join(", ");
-        return [sup && `사급 · ${sup}`, turn && `턴키 · ${turn}`].filter(Boolean).join("\n");
+        return [sup && `${t("사급", "Customer")} · ${sup}`, turn && `${t("턴키", "Turnkey")} · ${turn}`].filter(Boolean).join("\n");
       }
       if (f.type === "list") return (v || []).join("\n");
       if (Array.isArray(v)) return v.join(", ");
-      if (f.type === "number" && v !== "" && v != null) return `${Number(v).toLocaleString("ko")}${f.unit || ""}`;
-      if (f.type === "date" && v) return new Date(v).toLocaleDateString("ko");
+      if (f.type === "number" && v !== "" && v != null) return `${Number(v).toLocaleString(locale)}${f.unit || ""}`;
+      if (f.type === "date" && v) return new Date(v).toLocaleDateString(locale);
       return v || "";
     };
     const placeholder = { background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" };
 
-    let hero = { label: "다음 행동", title: "담당자 배정 대기", sub: "곧 담당자가 배정되어 안내드립니다.", cta: null };
+    let hero = { label: t("다음 행동", "Next Step"), title: t("담당자 배정 대기", "Awaiting Assignment"), sub: t("곧 담당자가 배정되어 안내드립니다.", "A team member will be assigned to you shortly."), cta: null };
     if (meeting?.confirmed) {
-      hero = { label: "확정된 일정", title: "제조 상담", sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: "Zoom 접속", href: meeting.zoomLink } : null };
+      hero = { label: t("확정된 일정", "Confirmed Schedule"), title: t("제조 상담", "Consultation"), sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: t("Zoom 접속", "Join Zoom"), href: meeting.zoomLink } : null };
     } else if (meeting) {
-      hero = { label: "다음 행동", title: "상담 일정 확정 대기", sub: "담당자가 확인 후 일정을 확정해 안내드립니다.", cta: null };
+      hero = { label: t("다음 행동", "Next Step"), title: t("상담 일정 확정 대기", "Awaiting Schedule Confirmation"), sub: t("담당자가 확인 후 일정을 확정해 안내드립니다.", "Our team will confirm your schedule shortly."), cta: null };
     }
 
     return (
@@ -2645,10 +2646,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, color: "#8A8A8E", fontWeight: 700 }}>{[client?.name, contact?.name].filter(Boolean).join(" · ") || "고객"}</div>
-              <div style={{ fontSize: 23, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 3 }}>{inquiry.status || "-"}</div>
+              <div style={{ fontSize: 13, color: "#8A8A8E", fontWeight: 700 }}>{[client?.name, contact?.name].filter(Boolean).join(" · ") || t("고객", "Customer")}</div>
+              <div style={{ fontSize: 23, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 3 }}>{inquiry.status ? t(inquiry.status) : "-"}</div>
             </div>
-            <button onClick={refreshPortalData} title="새로고침" style={{
+            <button onClick={refreshPortalData} title={t("새로고침", "Refresh")} style={{
               width: 42, height: 42, borderRadius: 14, background: "#fff", border: 0, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,.06)", position: "relative",
             }}>
@@ -2676,13 +2677,13 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, minWidth: 0 }}>
                 {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{inquiry.uid}</span>}
-                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || "제조개발 문의"}</span>
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || t("제조개발 문의", "Manufacturing Inquiry")}</span>
               </div>
               <div style={{ display: "flex", gap: 0 }}>
                 {STAGES.map((s, i) => (
                   <span key={s} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <span style={{ width: "100%", height: 3, borderRadius: 99, background: i <= stageIdx ? "#111" : "#E4E4E4" }} />
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: i <= stageIdx ? "#111" : "#B0B0B4" }}>{s}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: i <= stageIdx ? "#111" : "#B0B0B4" }}>{t(s)}</span>
                   </span>
                 ))}
               </div>
@@ -2690,24 +2691,24 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <button onClick={() => setPortalTab("inquiry")} style={{ textAlign: "left", background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: 0, cursor: "pointer", fontFamily: FONT }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>기획개발의뢰서</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>{t("기획개발의뢰서", "Development Request Form")}</div>
                 <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
-                  {products.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
+                  {products.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>{t("건", "")}</span>
                 </div>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: openProducts > 0 ? C.accent : "#8A8A8E", marginTop: 4 }}>
-                  {openProducts > 0 ? `진행 중 ${openProducts}건` : products.length > 0 ? "전체 완료" : "작성된 의뢰서 없음"}
+                  {openProducts > 0 ? t(`진행 중 ${openProducts}건`, `${openProducts} in progress`) : products.length > 0 ? t("전체 완료", "All Complete") : t("작성된 의뢰서 없음", "No requests yet")}
                 </div>
               </button>
               <button onClick={() => setPortalTab("estimate")} style={{ textAlign: "left", background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: 0, cursor: "pointer", fontFamily: FONT }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>가견적</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>{t("가견적", "Estimate")}</div>
                 {estimates.length === 0 ? (
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>아직 없음</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#B0B0B4", marginTop: 10 }}>{t("아직 없음", "None yet")}</div>
                 ) : (
                   <>
                     <div style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 6 }}>
-                      {estimates.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>건</span>
+                      {estimates.length}<span style={{ fontSize: 14, color: "#B0B0B4" }}>{t("건", "")}</span>
                     </div>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.accent, marginTop: 4 }}>{estimates[0].status || "-"}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.accent, marginTop: 4 }}>{estimates[0].status ? t(estimates[0].status) : "-"}</div>
                   </>
                 )}
               </button>
@@ -2720,14 +2721,14 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               }}>
                 <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16, flex: "none" }}>▤</span>
                 <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{latestContract.name || "제조 계약서"}{latestContract.version ? ` v${latestContract.version}` : ""}</span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{latestContract.name || t("제조 계약서", "Manufacturing Contract")}{latestContract.version ? ` v${latestContract.version}` : ""}</span>
                   <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>
-                    {latestContract.status === "날인 완료" ? `날인 완료 · ${fmtDate(latestContract.signedDate)}` :
-                      ddayOf(latestContract) != null ? `날인 기한까지 D${ddayOf(latestContract) >= 0 ? "-" + ddayOf(latestContract) : "+" + (-ddayOf(latestContract))}` :
-                        latestContract.status || "-"}
+                    {latestContract.status === "날인 완료" ? `${t("날인 완료 · ", "Signed · ")}${fmtDate(latestContract.signedDate)}` :
+                      ddayOf(latestContract) != null ? t(`날인 기한까지 D${ddayOf(latestContract) >= 0 ? "-" + ddayOf(latestContract) : "+" + (-ddayOf(latestContract))}`, `${ddayOf(latestContract) >= 0 ? "D-" + ddayOf(latestContract) : "D+" + (-ddayOf(latestContract))} to sign`) :
+                        latestContract.status ? t(latestContract.status) : "-"}
                   </span>
                 </span>
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99, flex: "none" }}>{latestContract.status || "-"}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99, flex: "none" }}>{latestContract.status ? t(latestContract.status) : "-"}</span>
               </button>
             )}
 
@@ -2736,9 +2737,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 textAlign: "left", background: "#111", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)",
                 border: 0, cursor: "pointer", fontFamily: FONT, color: "#fff", display: "flex", flexDirection: "column", gap: 4,
               }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#9A9A9E" }}>{latestProject.uid ? `${latestProject.uid} · ` : ""}{latestProject.name || "제조 프로젝트"}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#9A9A9E" }}>{latestProject.uid ? `${latestProject.uid} · ` : ""}{latestProject.name || t("제조 프로젝트", "Manufacturing Project")}</span>
                 <span style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4 }}>{latestProject.currentStage || latestProject.status || "-"}</span>
+                  <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4 }}>{latestProject.currentStage ? t(latestProject.currentStage) : latestProject.status ? t(latestProject.status) : "-"}</span>
                   {typeof latestProject.progress === "number" && (
                     <span style={{ fontSize: 20, fontWeight: 800, color: C.accent, letterSpacing: -0.6 }}>{Math.round(latestProject.progress <= 1 ? latestProject.progress * 100 : latestProject.progress)}%</span>
                   )}
@@ -2746,8 +2747,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               </button>
             ) : (
               <div style={placeholder}>
-                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>제조 프로젝트</div>
-                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>계약 완료 후 여기에 표시됩니다.</div>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, marginBottom: 6 }}>{t("제조 프로젝트", "Manufacturing Project")}</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("계약 완료 후 여기에 표시됩니다.", "This will appear once your contract is signed.")}</div>
               </div>
             )}
 

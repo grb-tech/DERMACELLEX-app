@@ -412,6 +412,17 @@ const DICT = {
   "리페어/修护": "Repair", "주름개선/抗皱": "Anti-wrinkle", "타이트닝/紧致": "Tightening",
   "기미제거미백(특수)/祛斑美白（特殊）": "Blemish Removal & Whitening (Special)",
   "자외선차단(특수)/防晒（特殊）": "UV Protection (Special)", "민감피부사용가능/敏感肌可用": "Suitable for Sensitive Skin",
+
+  // ── 09 전용 페이지(포털) 홈 탭 ──
+  "홈": "Home", "문의": "Inquiry", "진행": "Progress", "알림": "Alerts",
+  "다음 행동": "Next Step", "담당자 배정 대기": "Awaiting Assignment", "곧 담당자가 배정되어 안내드립니다.": "A team member will be assigned to you shortly.",
+  "확정된 일정": "Confirmed Schedule", "제조 상담": "Consultation", "Zoom 접속": "Join Zoom",
+  "상담 일정 확정 대기": "Awaiting Schedule Confirmation", "담당자가 확인 후 일정을 확정해 안내드립니다.": "Our team will confirm your schedule shortly.",
+  "고객": "Customer", "새로고침": "Refresh", "제조개발 문의": "Manufacturing Inquiry",
+  "전체 완료": "All Complete", "작성된 의뢰서 없음": "No requests yet", "아직 없음": "None yet",
+  "제조 계약서": "Manufacturing Contract", "날인 완료 · ": "Signed · ",
+  "제조 프로젝트": "Manufacturing Project", "계약 완료 후 여기에 표시됩니다.": "This will appear once your contract is signed.",
+  "건": "", // 한국어 개수 단위 — 영문은 접미사 없이 숫자만 표시
 };
 
 export default DICT;
