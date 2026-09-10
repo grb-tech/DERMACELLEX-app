@@ -1339,7 +1339,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
   const attemptPortalLogin = async (email, code) => {
     setPortalErr("");
     if (!email.trim() || !/^\d{6}$/.test(code.trim())) {
-      setPortalErr("이메일과 6자리 코드를 정확히 입력해주세요.");
+      setPortalErr(t("이메일과 6자리 코드를 정확히 입력해주세요.", "Please enter a valid email and 6-digit code."));
       return;
     }
     setSubmitSt("loading");
@@ -1399,7 +1399,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     setPortalErr("");
     setPortalMsg("");
     if (!portalEmail.trim()) {
-      setPortalErr("이메일을 먼저 입력해주세요.");
+      setPortalErr(t("이메일을 먼저 입력해주세요.", "Please enter your email first."));
       return;
     }
     setSubmitSt("loading");
@@ -1411,7 +1411,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "재전송에 실패했습니다.");
-      setPortalMsg("등록된 이메일이면 새 코드를 보내드렸습니다. 메일함을 확인해주세요.");
+      setPortalMsg(t("등록된 이메일이면 새 코드를 보내드렸습니다. 메일함을 확인해주세요.", "If this email is registered, a new code has been sent — please check your inbox."));
     } catch (err) {
       setPortalErr(err.message);
     } finally {
@@ -2479,20 +2479,20 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           <div style={{
             background: C.accentLight, borderRadius: 16, padding: 20, marginBottom: 20,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>다음 단계 안내</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>{t("다음 단계 안내", "Next Steps")}</div>
             {[
-              { n: "1", t: "담당자 배정 및 전용 페이지에서 진행 상황 확인" },
-              { n: "2", t: "미팅 일정 확정 (ZOOM)" },
-              { n: "3", t: form.willWriteDoc ? "개발의뢰서 양식 안내" : "상담 후 개발의뢰서 안내" },
-              { n: "4", t: "가견적 산출 및 계약 검토" },
-            ].map(({ n, t }) => (
+              { n: "1", label: t("담당자 배정 및 전용 페이지에서 진행 상황 확인", "A team member is assigned · Track progress in your portal") },
+              { n: "2", label: t("미팅 일정 확정 (ZOOM)", "Meeting time confirmed (Zoom)") },
+              { n: "3", label: form.willWriteDoc ? t("개발의뢰서 양식 안내", "Development request form guidance") : t("상담 후 개발의뢰서 안내", "Development request form arranged after consultation") },
+              { n: "4", label: t("가견적 산출 및 계약 검토", "Preliminary estimate and contract review") },
+            ].map(({ n, label }) => (
               <div key={n} style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "center" }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: "50%", background: C.accent, color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, fontWeight: 700, flexShrink: 0,
                 }}>{n}</div>
-                <span style={{ fontSize: 13, color: C.textSub }}>{t}</span>
+                <span style={{ fontSize: 13, color: C.textSub }}>{label}</span>
               </div>
             ))}
           </div>
@@ -2502,8 +2502,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`,
             padding: "16px 18px", fontSize: 13, color: C.textSub, lineHeight: 1.7,
           }}>
-            🔑 접속 코드를 분실하신 경우 아래 연락처로 문의해 주세요.<br />
-            <strong style={{ color: C.text }}>이메일:</strong> contact@dermacellex.com
+            🔑 {t("접속 코드를 분실하신 경우 아래 연락처로 문의해 주세요.", "If you've lost your access code, please contact us below.")}<br />
+            <strong style={{ color: C.text }}>{t("이메일", "Email")}:</strong> contact@dermacellex.com
           </div>
         </div>
       </div>
@@ -2517,16 +2517,16 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <style>{css}</style>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>전용 페이지</div>
-            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>이메일과 접속 코드로 진행 상황을 확인하세요.</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{t("전용 페이지", "My Portal")}</div>
+            <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>{t("이메일과 접속 코드로 진행 상황을 확인하세요.", "Check your progress with your email and access code.")}</div>
           </div>
           <div style={card2}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>이메일</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>{t("이메일", "Email")}</div>
               <input type="email" value={portalEmail} onChange={e => setPortalEmail(e.target.value)} placeholder="you@company.com" style={uInp} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>6자리 접속 코드</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>{t("6자리 접속 코드", "6-Digit Access Code")}</div>
               <input value={portalCode} onChange={e => setPortalCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000"
                 style={{ ...uInp, fontFamily: "ui-monospace, monospace", letterSpacing: 4 }} />
             </div>
@@ -2535,7 +2535,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             <button onClick={resendPortalCode} disabled={submitSt === "loading"} style={{
               alignSelf: "flex-start", background: "none", border: 0, padding: 0, cursor: "pointer",
               fontFamily: FONT, fontSize: 12.5, fontWeight: 700, color: "#8A8A8E", textDecoration: "underline",
-            }}>코드를 못 받으셨나요? 재전송</button>
+            }}>{t("코드를 못 받으셨나요? 재전송", "Didn't receive a code? Resend")}</button>
           </div>
         </div>
         <div style={{ flex: "none", padding: "12px 20px", background: "#fff", borderTop: "1px solid #E4E4E4" }}>
@@ -2543,7 +2543,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             width: "100%", height: 52, border: 0, borderRadius: 16, background: "#111",
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
             opacity: submitSt === "loading" ? 0.6 : 1,
-          }}>{submitSt === "loading" ? "확인 중..." : "전용 페이지 접속"}</button>
+          }}>{submitSt === "loading" ? t("확인 중...", "Checking...") : t("전용 페이지 접속", "Log In to Portal")}</button>
         </div>
       </div>
     );
