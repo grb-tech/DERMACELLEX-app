@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import AdminApp from "./Admin.jsx";
 
 // ━━━━━━━━━━ DESIGN TOKENS (DERMACELLEX Palette) ━━━━━━━━━━
 const C = {
@@ -820,7 +821,10 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (window.location.pathname === "/form" || params.has("form")) {
+    if (window.location.pathname === "/admin") {
+      // 내부 담당자 전용 관리자 페이지 — 고객용 흐름(MainFlow)과 완전히 분리되어 있다.
+      setRoute("admin");
+    } else if (window.location.pathname === "/form" || params.has("form")) {
       setRoute("devform");
       // inquiry = 제조 문의 관리 페이지 ID (V2 스키마 기준, 신규 링크).
       // client/id는 예전에 이미 발송된 링크와의 호환을 위해 남겨둠.
@@ -831,6 +835,7 @@ export default function App() {
     }
   }, []);
 
+  if (route === "admin") return <AdminApp />;
   if (route === "devform") return <DevRequestForm clientId={clientId} />;
   return <MainFlow initialPortalEmail={portalAuto?.email} initialPortalCode={portalAuto?.code} />;
 }

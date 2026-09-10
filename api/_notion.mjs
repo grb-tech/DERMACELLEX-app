@@ -36,6 +36,10 @@ export const DB = {
   // 피부타입DB (제품개발의뢰서 '타겟피부' 관계 대상 — BUSINESS OS 쪽이 정본, 2026-09-09 확정.
   // 이름이 같은 BIOBIJOU 쪽 구버전(3024c864-...)과 혼동하지 않도록 주의)
   SKINTYPE: '38f4c864-7128-8041-8b1c-ed18d9e0c94a',
+  // 제조 앱 필드 설정 (관리자 페이지용)
+  FIELD_CONFIG: '65283f72-d68d-4977-9279-b81cf4129528',
+  // 제조 연동 오류 관리 (관리자 페이지용)
+  SYNC_ERROR: 'ec372b0a-1913-4d31-807a-6b024e953f3c',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
