@@ -539,6 +539,7 @@ function Chip({ label, sel, onClick, dim }) {
 // 고른 것만 위에 보여주고, 검색과 접이식 그룹으로 필요한 것만 찾아 고르게 한다.
 const PICKER_THRESHOLD = 12;
 function BigPicker({ options, groups, value, onToggle, max, single }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const sel = value || [];
@@ -557,7 +558,7 @@ function BigPicker({ options, groups, value, onToggle, max, single }) {
             <button key={o} onClick={() => onToggle(o)} style={{
               height: 32, padding: "0 9px 0 12px", borderRadius: 99, border: 0, background: "#111", color: "#fff",
               fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 6,
-            }}>{o}<span style={{ color: "#9A9A9E", fontSize: 12 }}>✕</span></button>
+            }}>{t(o)}<span style={{ color: "#9A9A9E", fontSize: 12 }}>✕</span></button>
           ))}
         </div>
       )}
@@ -565,25 +566,25 @@ function BigPicker({ options, groups, value, onToggle, max, single }) {
         height: 42, borderRadius: 13, border: "1.5px solid #E4E4E4", background: "#fff", cursor: "pointer", fontFamily: FONT,
         fontSize: 13, fontWeight: 800, color: "#434343", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px",
       }}>
-        <span>{sel.length > 0 ? `${sel.length}개 선택됨 · 고치기` : "목록에서 선택하기"}</span>
+        <span>{sel.length > 0 ? t(`${sel.length}개 선택됨 · 고치기`, `${sel.length} selected · Edit`) : t("목록에서 선택하기", "Choose from list")}</span>
         <span style={{ color: "#B0B0B4", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: 14, background: "#F7F7F8" }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="검색"
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder={t("검색", "Search")}
             style={{ height: 38, borderRadius: 10, border: 0, background: "#fff", padding: "0 12px", fontSize: 13.5, fontWeight: 600, fontFamily: FONT, outline: "none" }} />
-          {max && !single && <div style={{ fontSize: 11.5, fontWeight: 700, color: full ? C.accent : "#B0B0B4" }}>최대 {max}개까지 선택할 수 있습니다.</div>}
+          {max && !single && <div style={{ fontSize: 11.5, fontWeight: 700, color: full ? C.accent : "#B0B0B4" }}>{t(`최대 ${max}개까지 선택할 수 있습니다.`, `You can select up to ${max}.`)}</div>}
           {sections.map(s => (
             <div key={s.title || "all"} style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {s.title && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#8A8A8E" }}>{s.title}</div>}
+              {s.title && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#8A8A8E" }}>{t(s.title)}</div>}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {s.items.map(o => (
-                  <Chip key={o} label={o} sel={sel.includes(o)} dim={full && !sel.includes(o)} onClick={() => onToggle(o)} />
+                  <Chip key={o} label={t(o)} sel={sel.includes(o)} dim={full && !sel.includes(o)} onClick={() => onToggle(o)} />
                 ))}
               </div>
             </div>
           ))}
-          {sections.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>검색 결과가 없습니다.</div>}
+          {sections.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>{t("검색 결과가 없습니다.", "No results found.")}</div>}
         </div>
       )}
     </div>
@@ -593,6 +594,7 @@ function BigPicker({ options, groups, value, onToggle, max, single }) {
 // 사급 · 턴키는 노션에서 같은 32개 목록을 쓴다. 목록을 두 번 보여주면 같은 부자재를 양쪽에
 // 중복 체크하기 쉬워서, 한 목록에서 항목마다 누가 준비할지 고르게 한다.
 function MaterialPicker({ groups, supplied, turnkey, onChange }) {
+  const { t } = useLang();
   const [openGroup, setOpenGroup] = useState(null);
   const sup = supplied || [];
   const turn = turnkey || [];
@@ -604,13 +606,13 @@ function MaterialPicker({ groups, supplied, turnkey, onChange }) {
     if (mode === "turnkey") nextTurn.push(item);
     onChange(nextSup, nextTurn);
   };
-  const MODES = [{ k: "supplied", label: "사급" }, { k: "turnkey", label: "턴키" }, { k: "none", label: "–" }];
+  const MODES = [{ k: "supplied", label: t("사급", "Customer") }, { k: "turnkey", label: t("턴키", "Turnkey") }, { k: "none", label: "–" }];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
       <div style={{ display: "flex", gap: 8, fontSize: 11.5, fontWeight: 800 }}>
-        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#EAF2FD", color: "#1B5FA8" }}>사급 {sup.length}</span>
-        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#FDF1EC", color: "#B0562A" }}>턴키 {turn.length}</span>
+        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#EAF2FD", color: "#1B5FA8" }}>{t("사급", "Customer")} {sup.length}</span>
+        <span style={{ padding: "5px 10px", borderRadius: 99, background: "#FDF1EC", color: "#B0562A" }}>{t("턴키", "Turnkey")} {turn.length}</span>
       </div>
       {groups.map(g => {
         const open = openGroup === g.title;
@@ -621,7 +623,7 @@ function MaterialPicker({ groups, supplied, turnkey, onChange }) {
               width: "100%", border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
               display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 14px",
             }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>{g.title}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>{t(g.title)}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {picked > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent }}>{picked}</span>}
                 <span style={{ color: "#B0B0B4", fontSize: 11 }}>{open ? "▲" : "▼"}</span>
@@ -633,7 +635,7 @@ function MaterialPicker({ groups, supplied, turnkey, onChange }) {
                   const mode = modeOf(item);
                   return (
                     <div key={item} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: mode === "none" ? "#8A8A8E" : "#111", flex: 1, minWidth: 0 }}>{item}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: mode === "none" ? "#8A8A8E" : "#111", flex: 1, minWidth: 0 }}>{t(item)}</span>
                       <span style={{ display: "flex", flex: "none", background: "#fff", borderRadius: 99, padding: 2, gap: 2 }}>
                         {MODES.map(m => {
                           const on = mode === m.k && m.k !== "none";
@@ -721,27 +723,28 @@ function SkinPicker({ items, value, onChange }) {
 }
 
 function DevField({ f, value, onChange, form, skinTypes }) {
+  const { t } = useLang();
   const body = () => {
     if (f.type === "text" || f.type === "url") {
-      return <input value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={uInpBase} />;
+      return <input value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={t(f.placeholder || "")} style={uInpBase} />;
     }
     if (f.type === "number") {
       return (
         <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-          <input value={value || ""} inputMode="numeric" placeholder={f.placeholder || ""} style={{ ...uInpBase, flex: 1 }}
+          <input value={value || ""} inputMode="numeric" placeholder={t(f.placeholder || "")} style={{ ...uInpBase, flex: 1 }}
             onChange={e => onChange(f.key, e.target.value.replace(/[^\d]/g, ""))} />
-          {f.unit && <span style={{ fontSize: 13, fontWeight: 700, color: "#8A8A8E", flex: "none" }}>{f.unit}</span>}
+          {f.unit && <span style={{ fontSize: 13, fontWeight: 700, color: "#8A8A8E", flex: "none" }}>{t(f.unit)}</span>}
         </div>
       );
     }
     if (f.type === "textarea") {
-      return <textarea value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={f.placeholder || ""} style={{ ...uInpBase, minHeight: 64, resize: "vertical" }} />;
+      return <textarea value={value || ""} onChange={e => onChange(f.key, e.target.value)} placeholder={t(f.placeholder || "")} style={{ ...uInpBase, minHeight: 64, resize: "vertical" }} />;
     }
     if (f.type === "date") {
       return <input type="date" value={value || ""} onChange={e => onChange(f.key, e.target.value)} style={uInpBase} />;
     }
     if (f.type === "list") {
-      return <ListInput value={value} placeholder={f.placeholder} onChange={v => onChange(f.key, v)} />;
+      return <ListInput value={value} placeholder={t(f.placeholder)} onChange={v => onChange(f.key, v)} />;
     }
     if (f.type === "skin") {
       return <SkinPicker items={skinTypes || []} value={value} onChange={v => onChange(f.key, v)} />;
@@ -758,7 +761,7 @@ function DevField({ f, value, onChange, form, skinTypes }) {
       }
       return (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {f.options.map(o => <Chip key={o} label={o} sel={value === o} onClick={() => onChange(f.key, value === o ? "" : o)} />)}
+          {f.options.map(o => <Chip key={o} label={t(o)} sel={value === o} onClick={() => onChange(f.key, value === o ? "" : o)} />)}
         </div>
       );
     }
@@ -775,7 +778,7 @@ function DevField({ f, value, onChange, form, skinTypes }) {
       return (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {f.options.map(o => (
-            <Chip key={o} label={o} sel={arr.includes(o)} dim={f.max && arr.length >= f.max && !arr.includes(o)} onClick={() => toggle(o)} />
+            <Chip key={o} label={t(o)} sel={arr.includes(o)} dim={f.max && arr.length >= f.max && !arr.includes(o)} onClick={() => toggle(o)} />
           ))}
         </div>
       );
@@ -787,11 +790,11 @@ function DevField({ f, value, onChange, form, skinTypes }) {
   const otherOn = f.otherKey && (Array.isArray(value) ? value.includes(f.otherWhen) : value === f.otherWhen);
 
   return (
-    <UField label={f.label} req={f.req} hint={f.hint}>
+    <UField label={t(f.label)} req={f.req} hint={t(f.hint)}>
       {body()}
       {otherOn && (
         <input value={form?.[f.otherKey] || ""} onChange={e => onChange(f.otherKey, e.target.value)}
-          placeholder={f.otherLabel || "직접 입력"} style={{ ...uInpBase, marginTop: 4 }} />
+          placeholder={t(f.otherLabel) || t("직접 입력", "Enter manually")} style={{ ...uInpBase, marginTop: 4 }} />
       )}
     </UField>
   );
