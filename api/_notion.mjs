@@ -50,6 +50,25 @@ export function queryDb(token, databaseId, filter, sorts) {
   });
 }
 
+// 관리자 대시보드 집계용 — 20건 제한 없이 전체 페이지를 커서로 끝까지 순회한다.
+// queryDb는 기존 호출부(portal-login 등)가 한 거래처 범위라 20건으로 충분해 그대로 둔다.
+export async function queryDbAll(token, databaseId, filter, sorts) {
+  const results = [];
+  let cursor;
+  do {
+    const body = {
+      page_size: 100,
+      ...(filter ? { filter } : {}),
+      ...(sorts ? { sorts } : {}),
+      ...(cursor ? { start_cursor: cursor } : {}),
+    };
+    const page = await notionCall(token, 'POST', `/databases/${databaseId}/query`, body);
+    results.push(...(page.results || []));
+    cursor = page.has_more ? page.next_cursor : null;
+  } while (cursor);
+  return { results };
+}
+
 export function plain(prop, kind) {
   if (!prop) return '';
   if (kind === 'title') return (prop.title || []).map(t => t.plain_text).join('');

@@ -6,6 +6,7 @@ import { notionCall, createPage, cors } from './_notion.mjs';
 import {
   ADMIN_DBS, dbEntry, signSession, verifySession, verifyGoogleToken,
   getDbSchema, pageToInput, inputToProps,
+  getPipelineBoard, getClientDetail, getActionItems,
 } from './_admin.mjs';
 
 export default async function handler(req, res) {
@@ -33,6 +34,24 @@ export default async function handler(req, res) {
 
     if (action === 'dbList') {
       return res.status(200).json({ success: true, dbs: ADMIN_DBS, email: session.email });
+    }
+
+    // ─── 업무 프로세스 대시보드 — dbKey 없이 전체 거래처/한 거래처/오늘 할 일을 집계 ───
+    if (action === 'pipelineBoard') {
+      const board = await getPipelineBoard(TOKEN);
+      return res.status(200).json({ success: true, ...board });
+    }
+
+    if (action === 'clientDetail') {
+      const { clientId } = req.body;
+      if (!clientId) return res.status(400).json({ success: false, error: 'clientId가 필요합니다.' });
+      const detail = await getClientDetail(TOKEN, clientId);
+      return res.status(200).json({ success: true, ...detail });
+    }
+
+    if (action === 'actionItems') {
+      const items = await getActionItems(TOKEN);
+      return res.status(200).json({ success: true, ...items });
     }
 
     const { dbKey } = req.body;
