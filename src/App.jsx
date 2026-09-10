@@ -3055,7 +3055,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
                   {steps.length === 0 ? (
                     <div style={placeholder}>
-                      <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 공개된 세부 진행 단계가 없습니다.</div>
+                      <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("아직 공개된 세부 진행 단계가 없습니다.", "No detailed progress steps have been shared yet.")}</div>
                     </div>
                   ) : (
                     <div style={card2}>
@@ -3081,15 +3081,15 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                               padding: 0, paddingBottom: 16, display: "flex", flexDirection: "column", gap: 8,
                             }}>
                               <span style={{ display: "flex", alignItems: "center", gap: 9, width: "100%" }}>
-                                <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: -0.3, color: done ? "#8A8A8E" : "#111" }}>{s.stage || s.name || "-"}</span>
-                                <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: active ? C.accent : attention ? "#D33" : "#8A8A8E", background: active ? "#FDF1EC" : attention ? "#FDECEC" : "#F1F1F2" }}>{s.status || "-"}</span>
+                                <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: -0.3, color: done ? "#8A8A8E" : "#111" }}>{s.stage ? t(s.stage) : s.name || "-"}</span>
+                                <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: active ? C.accent : attention ? "#D33" : "#8A8A8E", background: active ? "#FDF1EC" : attention ? "#FDECEC" : "#F1F1F2" }}>{s.status ? t(s.status) : "-"}</span>
                                 <span style={{ flex: 1 }} />
                                 <span style={{ fontSize: 12, fontWeight: 700, color: "#A8A8AC" }}>{fmtDate(s.endDate || s.targetDate)}</span>
                               </span>
                               {isOpen && (
                                 <span style={{ width: "100%", padding: 14, borderRadius: 16, background: "#F7F7F7", display: "flex", flexDirection: "column", gap: 8 }}>
-                                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.55, fontWeight: 600 }}>{s.summary || "공개된 세부 설명이 없습니다."}</span>
-                                  {s.targetDate && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8A8E" }}>목표일 {fmtDate(s.targetDate)}</span>}
+                                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.55, fontWeight: 600 }}>{s.summary || t("공개된 세부 설명이 없습니다.", "No detailed description shared yet.")}</span>
+                                  {s.targetDate && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8A8E" }}>{t("목표일", "Target Date")} {fmtDate(s.targetDate)}</span>}
                                 </span>
                               )}
                             </button>
@@ -3105,19 +3105,19 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           {portalTab === "alerts" && (<>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
-                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>알림</span>
-                {unreadNotis.length > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{unreadNotis.length}개 안읽음</span>}
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>{t("알림", "Alerts")}</span>
+                {unreadNotis.length > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{t(`${unreadNotis.length}개 안읽음`, `${unreadNotis.length} unread`)}</span>}
               </div>
               {unreadNotis.length > 0 && (
                 <button onClick={markAllNotisRead} style={{
                   height: 34, padding: "0 13px", border: 0, borderRadius: 11, background: "#fff", color: "#434343",
                   fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.05)",
-                }}>모두 읽음</button>
+                }}>{t("모두 읽음", "Mark All Read")}</button>
               )}
             </div>
             {notifications.length === 0 && (
               <div style={placeholder}>
-                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 알림이 없습니다.</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("아직 알림이 없습니다.", "No alerts yet.")}</div>
               </div>
             )}
             {notifications.map((n, i) => {
@@ -3130,7 +3130,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                   <span style={{ width: 36, height: 36, flex: "none", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: ic.fg, background: ic.bg }}>{ic.icon}</span>
                   <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: C.accent }}>{n.type || "안내"}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: C.accent }}>{n.type ? t(n.type) : t("안내", "Notice")}</span>
                       <span style={{ fontSize: 11, color: "#B0B0B4", fontWeight: 600 }}>{fmtDate(n.sentDate)}</span>
                     </span>
                     <span style={{ fontSize: 14.5, letterSpacing: -0.3, color: "#111", fontWeight: n.read ? 700 : 800 }}>{n.title || "-"}</span>
@@ -3143,24 +3143,24 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           </>)}
 
           <div style={{ textAlign: "center", fontSize: 11.5, color: "#B0B0B4", fontWeight: 600, marginTop: 4 }}>
-            {portalSynced ? `마지막 업데이트 ${portalSynced.toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" })} · 15초마다 자동 새로고침` : ""}
+            {portalSynced ? t(`마지막 업데이트 ${portalSynced.toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" })} · 15초마다 자동 새로고침`, `Last updated ${portalSynced.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} · Auto-refreshes every 15s`) : ""}
           </div>
         </div>
         <div style={{ flex: "none", height: 74, background: "#fff", borderTop: "1px solid #E9E9EA", display: "flex", alignItems: "flex-start", padding: "10px 8px 0" }}>
-          {TABS.map(t => {
-            const active = portalTab === t.key;
+          {TABS.map(tab => {
+            const active = portalTab === tab.key;
             return (
-              <button key={t.key} onClick={() => setPortalTab(t.key)} style={{
+              <button key={tab.key} onClick={() => setPortalTab(tab.key)} style={{
                 flex: 1, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "4px 0",
               }}>
                 <span style={{ fontSize: 17, position: "relative" }}>
-                  {t.icon}
-                  {t.key === "alerts" && unreadNotis.length > 0 && (
+                  {tab.icon}
+                  {tab.key === "alerts" && unreadNotis.length > 0 && (
                     <span style={{ position: "absolute", top: -2, right: -6, width: 7, height: 7, borderRadius: 99, background: C.accent }} />
                   )}
                 </span>
-                <span style={{ fontSize: 10.5, fontWeight: 800, color: active ? "#111" : "#B0B0B4" }}>{t.label}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: active ? "#111" : "#B0B0B4" }}>{tab.label}</span>
               </button>
             );
           })}
