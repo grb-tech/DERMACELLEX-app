@@ -4,6 +4,10 @@
 //
 // 2026-09-08: 노션 실제 스키마를 다시 확인해보니 '미팅 일시'라는 속성은 존재하지 않았다(오기).
 // 실제 속성명인 '희망 미팅일1' · '희망 미팅일2'(둘 다 date 타입) 기준으로 재작성.
+//
+// 2026-09-10: GET은 원래 api/meeting-slots.mjs(이미 예약된 시간 조회, 07 화면에서 사용)였는데
+// Vercel Hobby 플랜의 서버리스 함수 12개 제한 때문에 이 파일로 합쳤다. POST(상담 신청)와
+// GET(예약 조회)은 완전히 분리된 로직이라 병합해도 서로 영향 없음.
 
 import { DB, createPage, notionCall, queryDb, cors, title, select, isWeekendOrHoliday } from './_notion.mjs';
 import { issueAccessCode } from './_access.mjs';
@@ -11,10 +15,27 @@ import { issueAccessCode } from './_access.mjs';
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(200).json({ status: 'ok' });
 
   const TOKEN = process.env.NOTION_TOKEN;
   if (!TOKEN) return res.status(500).json({ success: false, error: 'NOTION_TOKEN not set' });
+
+  if (req.method === 'GET') {
+    try {
+      const result = await notionCall(TOKEN, 'POST', `/databases/${DB.MEETING}/query`, {
+        filter: { property: '미팅 확정일', date: { is_not_empty: true } },
+        page_size: 100,
+      });
+      const booked = (result.results || [])
+        .map(p => p.properties?.['미팅 확정일']?.date?.start)
+        .filter(Boolean);
+      return res.status(200).json({ success: true, booked });
+    } catch (err) {
+      console.error('MeetingSlots Error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.method !== 'POST') return res.status(200).json({ status: 'ok' });
 
   try {
     const { inquiryId, contactId, clientId, businessName, meetingDate1, meetingTime1, meetingDate2, meetingTime2 } = req.body;

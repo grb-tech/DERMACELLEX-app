@@ -932,7 +932,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
   useEffect(() => {
     if (phase !== "meeting") return;
-    fetch("/api/meeting-slots").then(r => r.json()).then(d => {
+    fetch("/api/meeting").then(r => r.json()).then(d => {
       if (d.success) setBookedSlots(d.booked || []);
     }).catch(() => {});
   }, [phase]);

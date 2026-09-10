@@ -115,6 +115,15 @@ export function number(value) {
 export function relation(ids) {
   return { relation: (ids || []).filter(Boolean).map(id => ({ id: String(id) })) };
 }
+export function date(value) {
+  return { date: value ? { start: String(value) } : null };
+}
+export function checkbox(value) {
+  return { checkbox: !!value };
+}
+export function status(name) {
+  return { status: name ? { name: String(name) } : null };
+}
 
 // 한국 법정 공휴일(대체공휴일 포함, 2026~2027) — src/App.jsx의 동일 목록과 맞춰 유지한다.
 // 주말과 겹치는 날짜는 요일 검사로 이미 걸러지므로 평일에 해당하는 날짜만 담았다.
