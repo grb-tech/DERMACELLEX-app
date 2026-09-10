@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import AdminApp from "./Admin.jsx";
+import { LangProvider, LangToggle, useLang } from "./i18n.jsx";
 
 // ━━━━━━━━━━ DESIGN TOKENS (DERMACELLEX Palette) ━━━━━━━━━━
 const C = {
@@ -53,10 +54,12 @@ const SVC = {
 };
 
 // ━━━━━━━━━━ 인트로 히어로: "WHY DERMACELLEX" 통계 (제조사 OS 앱.dc.html 01번 화면 기준) ━━━━━━━━━━
+// num/unit은 AnimNum이 그대로 파싱해 카운트업 애니메이션을 돌리므로(콤마 제거 후 parseInt),
+// 언어별로 숫자 표기 자체가 달라지는 항목(예: "1,800만원" → "18M")은 en 쪽 값을 따로 둔다.
 const HERO_STATS = [
-  { num: "110", unit: "개+", label: "체크 요소" },
-  { num: "180", unit: "일+", label: "기획~출시" },
-  { num: "1,800", unit: "만+", label: "투입 비용" },
+  { num: "110", unit: "개+", numEn: "110", unitEn: "+", label: "체크 요소", labelEn: "Checkpoints" },
+  { num: "180", unit: "일+", numEn: "180", unitEn: "+ days", label: "기획~출시", labelEn: "Plan to Launch" },
+  { num: "1,800", unit: "만+", numEn: "18", unitEn: "M+ KRW", label: "투입 비용", labelEn: "Investment" },
 ];
 
 // ━━━━━━━━━━ 20 QUESTIONS (Spreadsheet-based) ━━━━━━━━━━
@@ -836,12 +839,18 @@ export default function App() {
   }, []);
 
   if (route === "admin") return <AdminApp />;
-  if (route === "devform") return <DevRequestForm clientId={clientId} />;
-  return <MainFlow initialPortalEmail={portalAuto?.email} initialPortalCode={portalAuto?.code} />;
+  return (
+    <LangProvider>
+      {route === "devform"
+        ? <DevRequestForm clientId={clientId} />
+        : <MainFlow initialPortalEmail={portalAuto?.email} initialPortalCode={portalAuto?.code} />}
+    </LangProvider>
+  );
 }
 
 // ━━━━━━━━━━ MAIN FLOW ━━━━━━━━━━
 function MainFlow({ initialPortalEmail, initialPortalCode }) {
+  const { t, lang } = useLang();
   const [phase, setPhase] = useState("intro");
   // 화면 이동 이력 — 05 품목 선택 · 07 상담 화면에는 원래 뒤로가기가 없어서 한 번 들어가면
   // 빠져나올 수 없었다. 같은 화면으로 되돌아가는 경우(품목 ↔ 의뢰서)는 쌓지 않고 걷어낸다.
@@ -1042,15 +1051,15 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "필수";
-    if (!form.phone.trim()) e.phone = "필수";
-    if (!form.email.includes("@")) e.email = "올바른 이메일을 입력해주세요";
-    if (!form.businessName.trim()) e.businessName = "필수";
-    if (!form.businessType) e.businessType = "필수";
-    if (!form.ceoName.trim()) e.ceoName = "필수";
-    if (!form.hasTrademark) e.hasTrademark = "필수";
-    if (!form.hasLicense) e.hasLicense = "필수";
-    if (!form.distributionCountries.length) e.distributionCountries = "최소 1개 선택";
+    if (!form.name.trim()) e.name = t("필수", "Required");
+    if (!form.phone.trim()) e.phone = t("필수", "Required");
+    if (!form.email.includes("@")) e.email = t("올바른 이메일을 입력해주세요", "Please enter a valid email");
+    if (!form.businessName.trim()) e.businessName = t("필수", "Required");
+    if (!form.businessType) e.businessType = t("필수", "Required");
+    if (!form.ceoName.trim()) e.ceoName = t("필수", "Required");
+    if (!form.hasTrademark) e.hasTrademark = t("필수", "Required");
+    if (!form.hasLicense) e.hasLicense = t("필수", "Required");
+    if (!form.distributionCountries.length) e.distributionCountries = t("최소 1개 선택", "Select at least 1");
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -1505,11 +1514,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <style>{css}</style>
         <div style={{ position: "absolute", inset: "0 0 auto 0", height: 460, background: "radial-gradient(closest-side, rgba(234,92,42,.38), transparent 70%)", filter: "blur(10px)", pointerEvents: "none" }} />
         <div style={{ height: 52, flex: "none", display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 20px", position: "relative" }}>
-          <button style={{
-            display: "flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px",
-            border: "1px solid #2E2E32", borderRadius: 99, background: "rgba(20,20,22,.72)",
-            color: "#E4E4E4", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
-          }}>🌐 한국어</button>
+          <LangToggle style={{ borderColor: "#2E2E32", background: "rgba(20,20,22,.72)" }} />
         </div>
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "8px 26px 32px", position: "relative", display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: "#fff", marginTop: 6 }}>DERMACELLEX</div>
@@ -1517,10 +1522,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           <div style={{ marginTop: 34, display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 3, color: C.accent }}>MANUFACTURING OS</div>
             <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.32, letterSpacing: -0.8, color: "#fff", whiteSpace: "pre-line" }}>
-              {"제품 진단부터 생산까지\n제조의 모든 과정을\n함께 합니다"}
+              {t("제품 진단부터 생산까지\n제조의 모든 과정을\n함께 합니다", "From product diagnosis\nto production —\nwe're with you the whole way")}
             </div>
             <div style={{ fontSize: 15, lineHeight: 1.7, color: "#9A9A9E" }}>
-              제품 진단부터 기획 · 견적 · 계약 · 생산까지, 복잡했던 제조 과정을 하나로 연결합니다.
+              {t("제품 진단부터 기획 · 견적 · 계약 · 생산까지, 복잡했던 제조 과정을 하나로 연결합니다.", "From diagnosis to planning, quoting, contracting, and production — we connect the entire manufacturing process in one place.")}
             </div>
           </div>
 
@@ -1530,15 +1535,15 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               {HERO_STATS.map((st, i) => (
                 <div key={i} style={{ background: "#161618", border: "1px solid #232326", borderRadius: 16, padding: "13px 12px" }}>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: -1, display: "flex", alignItems: "baseline" }}>
-                    <AnimNum value={st.num} />
-                    <span style={{ fontSize: 12, color: C.accent, marginLeft: 1 }}>{st.unit}</span>
+                    <AnimNum value={lang === "en" ? st.numEn : st.num} />
+                    <span style={{ fontSize: 12, color: C.accent, marginLeft: 1 }}>{lang === "en" ? st.unitEn : st.unit}</span>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#8A8A8E", marginTop: 3 }}>{st.label}</div>
+                  <div style={{ fontSize: 11.5, color: "#8A8A8E", marginTop: 3 }}>{lang === "en" ? st.labelEn : st.label}</div>
                 </div>
               ))}
               <div style={{ gridColumn: "span 3", background: "#161618", border: "1px solid #232326", borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: C.accent, flex: "none" }} />
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#D8D8DA" }}>30분 진단으로 제품기술(개발)기준서까지</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#D8D8DA" }}>{t("30분 진단으로 제품기술(개발)기준서까지", "From a 30-minute diagnosis to a full product development brief")}</div>
               </div>
             </div>
           </div>
@@ -1548,13 +1553,13 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               height: 58, border: 0, borderRadius: 18, background: C.accent, color: "#fff",
               fontSize: 17, fontWeight: 800, letterSpacing: -0.4, cursor: "pointer", fontFamily: FONT,
               boxShadow: "0 12px 28px -12px rgba(234,92,42,.9)",
-            }}>제조서비스 문의하기</button>
+            }}>{t("제조서비스 문의하기", "Inquire About Manufacturing")}</button>
             <button onClick={() => setPhase("portal-login")} style={{
               height: 58, border: "1px solid #2E2E32", borderRadius: 18, background: "#141416",
               color: "#E4E4E4", fontSize: 17, fontWeight: 700, letterSpacing: -0.4, cursor: "pointer", fontFamily: FONT,
-            }}>전용 페이지 이동하기</button>
+            }}>{t("전용 페이지 이동하기", "Go to My Portal")}</button>
             <div style={{ textAlign: "center", fontSize: 12, color: "#5E5E62", marginTop: 2 }}>
-              20문항 · 약 5분 · 상담 확정 시 6자리 코드 발급
+              {t("20문항 · 약 5분 · 상담 확정 시 6자리 코드 발급", "20 questions · ~5 min · A 6-digit code is issued once your consultation is confirmed")}
             </div>
           </div>
         </div>
@@ -1578,7 +1583,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               width: 36, height: 36, border: 0, borderRadius: 12, background: "#fff",
               color: "#434343", fontSize: 18, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
             }}>‹</button>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#434343" }}>맞춤 진단</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#434343" }}>{t("맞춤 진단", "Custom Diagnosis")}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#9A9A9E" }}>{qIdx + 1} / {QUESTIONS.length}</div>
           </div>
           <div style={{ height: 6, borderRadius: 99, background: "#E4E4E4", overflow: "hidden" }}>
@@ -1591,10 +1596,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           transition: "all 0.2s ease",
         }}>
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", color: C.accent, marginBottom: 8 }}>
-            {`SECTION ${q.sectionNum} · ${q.section}`.toUpperCase()}
+            {`SECTION ${q.sectionNum} · ${t(q.section)}`.toUpperCase()}
           </div>
-          <div style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.32, letterSpacing: -0.9, color: "#111", marginBottom: 6 }}>{q.question}</div>
-          {guide && <div style={{ fontSize: 14, color: "#8A8A8E", marginBottom: 20 }}>{guide}</div>}
+          <div style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.32, letterSpacing: -0.9, color: "#111", marginBottom: 6 }}>{t(q.question)}</div>
+          {guide && <div style={{ fontSize: 14, color: "#8A8A8E", marginBottom: 20 }}>{t(guide)}</div>}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {q.options.map((opt, i) => {
@@ -1610,7 +1615,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     width: 26, height: 26, flex: "none", borderRadius: 99, display: "grid", placeItems: "center",
                     fontSize: 13, fontWeight: 800, color: sel ? "#fff" : "#8A8A8E", background: sel ? C.accent : "#F1F1F2",
                   }}>{sel ? "✓" : i + 1}</span>
-                  <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.4, lineHeight: 1.45, color: sel ? "#7A3520" : "#111" }}>{opt.text}</span>
+                  <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.4, lineHeight: 1.45, color: sel ? "#7A3520" : "#111" }}>{t(opt.text)}</span>
                 </button>
               );
             })}
@@ -1619,7 +1624,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <div style={{ flex: "none", padding: "14px 20px 10px", background: "#fff", borderTop: "1px solid #E4E4E4", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>작성률</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>{t("작성률", "Progress")}</span>
               <span style={{ fontSize: 24, fontWeight: 800, color: "#111", letterSpacing: -0.6 }}>{Math.round((answeredCount / QUESTIONS.length) * 100)}%</span>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>{answeredCount}/{QUESTIONS.length}</span>
             </div>
@@ -1631,7 +1636,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             height: 50, padding: "0 22px", border: 0, borderRadius: 16, color: "#fff", fontSize: 15, fontWeight: 800,
             cursor: isAnswered ? "pointer" : "default", fontFamily: FONT, letterSpacing: -0.4, transition: "all .2s",
             background: isAnswered ? C.accent : "#D4D4D6",
-          }}>{qIdx === QUESTIONS.length - 1 ? "결과 보기" : "다음"}</button>
+          }}>{qIdx === QUESTIONS.length - 1 ? t("결과 보기", "See Results") : t("다음", "Next")}</button>
         </div>
       </div>
     );
@@ -1653,18 +1658,18 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 width: 32, height: 32, border: 0, borderRadius: 10, background: "rgba(255,255,255,.1)",
                 color: "#fff", fontSize: 16, cursor: "pointer", fontFamily: FONT,
               }}>←</button>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#9A9A9E" }}>맞춤 진단 결과 · 작성률 {fillPct}%</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#9A9A9E" }}>{t("맞춤 진단 결과", "Diagnosis Results")} · {t("작성률", "Progress")} {fillPct}%</div>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", color: C.accent, marginBottom: 10 }}>추천 서비스</div>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", color: C.accent, marginBottom: 10 }}>{t("추천 서비스", "Recommended Service")}</div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
               <div style={{ fontSize: 60, fontWeight: 800, lineHeight: 0.9, letterSpacing: -3 }}>{recommended}</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", paddingBottom: 8 }}>{best.full}</div>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.4, letterSpacing: -0.6, color: "#fff", marginTop: 16, whiteSpace: "pre-line" }}>{best.head}</div>
-            <div style={{ fontSize: 14, color: "#A0A0A4", marginTop: 10, lineHeight: 1.65 }}>{best.desc}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.4, letterSpacing: -0.6, color: "#fff", marginTop: 16, whiteSpace: "pre-line" }}>{t(best.head)}</div>
+            <div style={{ fontSize: 14, color: "#A0A0A4", marginTop: 10, lineHeight: 1.65 }}>{t(best.desc)}</div>
             <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 16, background: "#1C1C1F", border: "1px solid #2A2A2E", display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: C.accent, width: 58, flex: "none", paddingTop: 1 }}>권장 사항</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#E4E4E4", lineHeight: 1.5, flex: 1 }}>{best.req}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.accent, width: 58, flex: "none", paddingTop: 1 }}>{t("권장 사항", "Requirements")}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#E4E4E4", lineHeight: 1.5, flex: 1 }}>{t(best.req)}</span>
             </div>
           </div>
 
@@ -1672,8 +1677,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             {/* 진행할 서비스 선택 */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 2px" }}>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>진행할 서비스 선택</span>
-                <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>추천과 다르게 선택 가능</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{t("진행할 서비스 선택", "Choose a Service")}</span>
+                <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{t("추천과 다르게 선택 가능", "You can choose a different service than the one recommended")}</span>
               </div>
               {Object.entries(SVC).map(([code, s]) => {
                 const isSel = chosen === code;
@@ -1692,23 +1697,23 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                         background: isSel ? C.accent : "transparent", border: isSel ? "none" : "1.5px solid #D4D4D6",
                       }}>{isSel ? "✓" : ""}</span>
                       <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.5, color: "#111" }}>{code}</span>
-                      {isRec && <span style={{ fontSize: 10.5, fontWeight: 800, padding: "3px 8px", borderRadius: 99, color: C.accent, background: "#FDF1EC" }}>추천</span>}
+                      {isRec && <span style={{ fontSize: 10.5, fontWeight: 800, padding: "3px 8px", borderRadius: 99, color: C.accent, background: "#FDF1EC" }}>{t("추천", "Recommended")}</span>}
                     </span>
-                    <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.45, letterSpacing: -0.4, whiteSpace: "pre-line", color: "#111" }}>{s.head}</span>
-                    <span style={{ fontSize: 13.5, lineHeight: 1.6, color: "#8A8A8E" }}>{s.desc}</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.45, letterSpacing: -0.4, whiteSpace: "pre-line", color: "#111" }}>{t(s.head)}</span>
+                    <span style={{ fontSize: 13.5, lineHeight: 1.6, color: "#8A8A8E" }}>{t(s.desc)}</span>
                     {isSel && (
                       <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, paddingTop: 12, borderTop: "1px solid #EFEFF0" }}>
                         <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.accent }}>고객 준비 범위</span>
-                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{s.cust}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.accent }}>{t("고객 준비 범위", "What You Prepare")}</span>
+                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{t(s.cust)}</span>
                         </span>
                         <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: "#8A8A8E" }}>본사 제공 범위</span>
-                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{s.hq}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: "#8A8A8E" }}>{t("본사 제공 범위", "What We Provide")}</span>
+                          <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600, color: "#434343" }}>{t(s.hq)}</span>
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "#F7F7F8" }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: "#434343", flex: "none" }}>권장 사항</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#434343" }}>{s.req}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#434343", flex: "none" }}>{t("권장 사항", "Requirements")}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#434343" }}>{t(s.req)}</span>
                         </span>
                       </span>
                     )}
@@ -1719,45 +1724,45 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
             {/* 다음 단계 선택 */}
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 2px 0" }}>
-              <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>다음 단계 선택</span>
-              <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{chosen} 기준</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{t("다음 단계 선택", "Choose Next Step")}</span>
+              <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{chosen} {t("기준", "based")}</span>
             </div>
 
             <div style={{ background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,.04)", border: `2px solid ${C.accent}`, display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 9px", borderRadius: 99, background: C.accent, color: "#fff" }}>권장</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>개발의뢰서까지 작성</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 9px", borderRadius: 99, background: C.accent, color: "#fff" }}>{t("권장", "Recommended")}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{t("개발의뢰서까지 작성", "Complete the Development Request Form")}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>제조 품목 선택</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>{t("제조 품목 선택", "Select Products")}</span>
                 <span style={{ fontSize: 11, color: "#C4C4C6", fontWeight: 800 }}>→</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>개발의뢰서</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#434343", padding: "6px 11px", borderRadius: 10, background: "#F4F4F5" }}>{t("개발의뢰서", "Dev Request")}</span>
                 <span style={{ fontSize: 11, color: "#C4C4C6", fontWeight: 800 }}>→</span>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#fff", padding: "6px 11px", borderRadius: 10, background: C.accent }}>가견적</span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#fff", padding: "6px 11px", borderRadius: 10, background: C.accent }}>{t("가견적", "Estimate")}</span>
               </div>
               <div style={{ borderRadius: 16, background: "#FDF1EC", border: "1px solid #F6D9CD", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                   <span style={{ width: 20, height: 20, flex: "none", borderRadius: 99, background: C.accent, color: "#fff", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center" }}>!</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A3520", letterSpacing: -0.4 }}>가견적 산출 안내</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A3520", letterSpacing: -0.4 }}>{t("가견적 산출 안내", "About Preliminary Estimates")}</span>
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A3520" }}>개발의뢰서 작성 시 가견적 산출이 가능합니다.</div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A3520" }}>{t("개발의뢰서 작성 시 가견적 산출이 가능합니다.", "A preliminary estimate becomes available once you complete the development request form.")}</div>
                 <div style={{ fontSize: 13, color: "#8C5340", lineHeight: 1.65, fontWeight: 600 }}>
-                  가견적은 고객이 현재까지 제공한 제품 정보와 개발 조건을 기준으로 산출한 예상 견적입니다. 제형·원료·용기·패키지·생산수량 및 서비스 범위가 구체화되면 제조 조건도 함께 확정되므로, 최종 견적은 상담 및 검토를 거쳐 조정될 수 있습니다.
+                  {t("가견적은 고객이 현재까지 제공한 제품 정보와 개발 조건을 기준으로 산출한 예상 견적입니다. 제형·원료·용기·패키지·생산수량 및 서비스 범위가 구체화되면 제조 조건도 함께 확정되므로, 최종 견적은 상담 및 검토를 거쳐 조정될 수 있습니다.", "The preliminary estimate is based on the product information and development conditions you've provided so far. As formulation, materials, containers, packaging, quantity, and service scope become more specific, manufacturing terms are also finalized — so the final quote may be adjusted after consultation and review.")}
                 </div>
               </div>
               <button onClick={() => submitDiagnosis(true)} disabled={submitSt === "loading"} style={{
                 height: 54, border: 0, borderRadius: 16, background: C.accent, color: "#fff", fontSize: 16, fontWeight: 800,
                 cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4, opacity: submitSt === "loading" ? 0.6 : 1,
-              }}>{submitSt === "loading" ? "저장 중..." : "제조 품목 선택하기"}</button>
+              }}>{submitSt === "loading" ? t("저장 중...", "Saving...") : t("제조 품목 선택하기", "Select Products")}</button>
             </div>
 
             <div style={{ background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 1px 2px rgba(0,0,0,.04)", display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>상담 먼저 진행</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", lineHeight: 1.6, fontWeight: 600 }}>제품 사양이 아직 정해지지 않은 경우. 담당자와 상담 후 개발의뢰서를 작성하며, 가견적은 의뢰서 작성 이후 산출됩니다.</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{t("상담 먼저 진행", "Consult First")}</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", lineHeight: 1.6, fontWeight: 600 }}>{t("제품 사양이 아직 정해지지 않은 경우. 담당자와 상담 후 개발의뢰서를 작성하며, 가견적은 의뢰서 작성 이후 산출됩니다.", "For when product specs aren't decided yet. You'll fill out the development request form after consulting with our team, and the estimate becomes available afterward.")}</div>
               <button onClick={() => submitDiagnosis(false)} disabled={submitSt === "loading"} style={{
                 height: 50, border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff", color: "#434343",
                 fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
-              }}>상담만 신청하기</button>
+              }}>{t("상담만 신청하기", "Request Consultation Only")}</button>
             </div>
           </div>
         </div>
