@@ -76,7 +76,10 @@ function AdminLogin({ onLogin }) {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const btnRef = useRef(null);
-  const clientId = import.meta.env.VITE_GOOGLE_ADMIN_CLIENT_ID;
+  // Client ID는 비밀값이 아니라 프런트 번들에 그대로 노출되는 공개 식별자라 하드코딩해도 안전하다
+  // (api/_admin.mjs의 서버 쪽 값과 반드시 같아야 한다). 필요하면 VITE_GOOGLE_ADMIN_CLIENT_ID로 덮어쓴다.
+  const clientId = import.meta.env.VITE_GOOGLE_ADMIN_CLIENT_ID
+    || "459440676457-vpj7nnt22i6r9qr7vihnndtrc6j2rl2j.apps.googleusercontent.com";
 
   useEffect(() => {
     if (window.google?.accounts?.id) { setReady(true); return; }

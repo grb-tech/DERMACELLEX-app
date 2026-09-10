@@ -11,6 +11,11 @@ import { DB, notionCall, text, title, select, multiSelect, url, number, relation
 
 const ALLOWED_DOMAIN = 'bsgholdings.co.kr';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
+// Google OAuth Client ID — 비밀값이 아니라 프런트 JS 번들에도 그대로 노출되는 공개 식별자라
+// 코드에 하드코딩해도 안전하다(진짜 비밀인 클라이언트 시크릿은 애초에 이 로그인 방식에서 쓰지
+// 않는다). 필요하면 GOOGLE_ADMIN_CLIENT_ID 환경변수로 덮어쓸 수 있다.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_ADMIN_CLIENT_ID
+  || '459440676457-vpj7nnt22i6r9qr7vihnndtrc6j2rl2j.apps.googleusercontent.com';
 
 // 관리자 화면에 보여줄 16개 DB — 표시 이름 · 사이드바 섹션만 여기서 정하고, 실제 속성 구성은
 // 전부 Notion에서 실시간으로 읽는다(아래 getDbSchema).
@@ -78,14 +83,12 @@ export function verifySession(token) {
 // Google Identity Services가 프런트에 돌려준 ID 토큰을 tokeninfo 엔드포인트로 그대로
 // 검증한다 — 별도 JWT 라이브러리 없이 fetch 하나로 서명·만료를 Google이 확인해준다.
 export async function verifyGoogleToken(credential) {
-  const clientId = process.env.GOOGLE_ADMIN_CLIENT_ID;
-  if (!clientId) throw new Error('GOOGLE_ADMIN_CLIENT_ID 환경변수가 설정되어 있지 않습니다.');
   if (!credential) throw new Error('Google 로그인 정보가 없습니다.');
 
   const r = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
   const payload = await r.json();
   if (!r.ok) throw new Error('Google 토큰 검증에 실패했습니다.');
-  if (payload.aud !== clientId) throw new Error('클라이언트 ID가 일치하지 않습니다.');
+  if (payload.aud !== GOOGLE_CLIENT_ID) throw new Error('클라이언트 ID가 일치하지 않습니다.');
   if (payload.email_verified !== 'true' && payload.email_verified !== true) {
     throw new Error('이메일이 인증되지 않은 계정입니다.');
   }
