@@ -423,6 +423,10 @@ const DICT = {
   "제조 계약서": "Manufacturing Contract", "날인 완료 · ": "Signed · ",
   "제조 프로젝트": "Manufacturing Project", "계약 완료 후 여기에 표시됩니다.": "This will appear once your contract is signed.",
   "건": "", // 한국어 개수 단위 — 영문은 접미사 없이 숫자만 표시
+
+  // ── DevRequestForm(/form 단독 페이지) — 제품 유형 드롭다운 ──
+  "세럼/에센스": "Serum/Essence", "토너/스킨": "Toner", "크림": "Cream", "로션/에멀전": "Lotion/Emulsion",
+  "클렌저": "Cleanser", "마스크팩": "Sheet Mask", "선케어": "Sun Care", "앰플": "Ampoule", "미스트": "Mist",
 };
 
 export default DICT;

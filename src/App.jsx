@@ -3175,6 +3175,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
 // ━━━━━━━━━━ DEV REQUEST FORM (개발의뢰서) ━━━━━━━━━━
 function DevRequestForm({ clientId }) {
+  const { t, lang } = useLang();
   const [loading, setLoading] = useState(true);
   const [clientInfo, setClientInfo] = useState(null);
   const [form, setForm] = useState({
@@ -3214,7 +3215,7 @@ function DevRequestForm({ clientId }) {
 
   const submitDevForm = async () => {
     if (products.length === 0 && !form.productName.trim()) {
-      alert("최소 1개 이상의 제품을 입력해주세요.");
+      alert(t("최소 1개 이상의 제품을 입력해주세요.", "Please enter at least 1 product."));
       return;
     }
     const allProducts = form.productName.trim()
@@ -3273,10 +3274,10 @@ function DevRequestForm({ clientId }) {
               <path d="M20 6L9 17l-5-5"/>
             </svg>
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: C.text }}>개발의뢰서가 제출되었습니다</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: C.text }}>{t("개발의뢰서가 제출되었습니다", "Your Development Request Has Been Submitted")}</h2>
           <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.7 }}>
-            담당자 검토 후 가견적이 산출됩니다.<br />
-            이메일로 안내드리겠습니다.
+            {t("담당자 검토 후 가견적이 산출됩니다.", "An estimate will be prepared after our team's review.")}<br />
+            {t("이메일로 안내드리겠습니다.", "We'll notify you by email.")}
           </p>
         </div>
       </div>
@@ -3292,7 +3293,7 @@ function DevRequestForm({ clientId }) {
         position: "sticky", top: 0, zIndex: 10,
       }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: C.accent }}>DERMACELLEX</div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>개발의뢰서</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{t("개발의뢰서", "Development Request")}</div>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 160px" }}>
@@ -3302,8 +3303,8 @@ function DevRequestForm({ clientId }) {
             background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`,
             padding: "14px 16px", marginBottom: 20,
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 8 }}>의뢰사 정보</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clientInfo.name || "고객"}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 8 }}>{t("의뢰사 정보", "Client Info")}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clientInfo.name || t("고객", "Customer")}</div>
             <div style={{ fontSize: 12, color: C.textSub }}>{clientInfo.service || ""}</div>
           </div>
         )}
@@ -3313,10 +3314,9 @@ function DevRequestForm({ clientId }) {
           background: C.accentLight, borderRadius: 14, padding: "14px 16px", marginBottom: 20,
           border: `1px solid ${C.accent}20`,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 6 }}>💡 가견적 산출 안내</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 6 }}>💡 {t("가견적 산출 안내", "About Preliminary Estimates")}</div>
           <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.6, margin: 0 }}>
-            개발의뢰서를 작성하시면 가견적을 산출해 드립니다.
-            여러 제품을 한번에 등록할 수 있습니다.
+            {t("개발의뢰서를 작성하시면 가견적을 산출해 드립니다. 여러 제품을 한번에 등록할 수 있습니다.", "Once you submit this form, we'll prepare a preliminary estimate. You can register multiple products at once.")}
           </p>
         </div>
 
@@ -3329,7 +3329,7 @@ function DevRequestForm({ clientId }) {
           }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{p.productName}</div>
-              <div style={{ fontSize: 12, color: C.textSub }}>{p.productType} · {p.volume} · {p.quantity}개</div>
+              <div style={{ fontSize: 12, color: C.textSub }}>{p.productType} · {p.volume} · {p.quantity}{t("개", "")}</div>
             </div>
             <button onClick={() => removeProduct(p.id)} style={{
               background: "none", border: "none", cursor: "pointer",
@@ -3344,74 +3344,74 @@ function DevRequestForm({ clientId }) {
           padding: "20px 18px", marginBottom: 16,
         }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16 }}>
-            제품 {products.length + 1} 정보 입력
+            {t(`제품 ${products.length + 1} 정보 입력`, `Product ${products.length + 1} Details`)}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>
-                제품명 <span style={{ color: C.accent }}>*</span>
+                {t("제품명", "Product Name")} <span style={{ color: C.accent }}>*</span>
               </label>
               <input value={form.productName} onChange={e => setForm(p => ({ ...p, productName: e.target.value }))}
-                placeholder="예: 모이스처 세럼" style={inp} />
+                placeholder={t("예: 모이스처 세럼", "e.g. Moisture Serum")} style={inp} />
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>제품 유형</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("제품 유형", "Product Type")}</label>
                 <select value={form.productType} onChange={e => setForm(p => ({ ...p, productType: e.target.value }))} style={inp}>
-                  <option value="">선택</option>
-                  {["세럼/에센스", "토너/스킨", "크림", "로션/에멀전", "클렌저", "마스크팩", "선케어", "앰플", "미스트", "기타"].map(t =>
-                    <option key={t} value={t}>{t}</option>
+                  <option value="">{t("선택", "Select")}</option>
+                  {["세럼/에센스", "토너/스킨", "크림", "로션/에멀전", "클렌저", "마스크팩", "선케어", "앰플", "미스트", "기타"].map(pt =>
+                    <option key={pt} value={pt}>{t(pt)}</option>
                   )}
                 </select>
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>용량</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("용량", "Volume")}</label>
                 <input value={form.volume} onChange={e => setForm(p => ({ ...p, volume: e.target.value }))}
-                  placeholder="예: 50ml" style={inp} />
+                  placeholder={t("예: 50ml", "e.g. 50ml")} style={inp} />
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>생산수량</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("생산수량", "Quantity")}</label>
                 <input value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-                  placeholder="예: 3000" type="number" style={inp} />
+                  placeholder={t("예: 3000", "e.g. 3000")} type="number" style={inp} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>목표가격</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("목표가격", "Target Price")}</label>
                 <input value={form.targetPrice} onChange={e => setForm(p => ({ ...p, targetPrice: e.target.value }))}
-                  placeholder="예: 25,000원" style={inp} />
+                  placeholder={t("예: 25,000원", "e.g. 25,000 KRW")} style={inp} />
               </div>
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>제형 / 텍스처</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("제형 / 텍스처", "Formulation / Texture")}</label>
               <input value={form.formulation} onChange={e => setForm(p => ({ ...p, formulation: e.target.value }))}
-                placeholder="예: 수분 젤 타입, 끈적이지 않은 마무리" style={inp} />
+                placeholder={t("예: 수분 젤 타입, 끈적이지 않은 마무리", "e.g. Hydrating gel type, non-sticky finish")} style={inp} />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>타겟 효능</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("타겟 효능", "Target Benefit")}</label>
               <input value={form.targetEffect} onChange={e => setForm(p => ({ ...p, targetEffect: e.target.value }))}
-                placeholder="예: 보습, 미백, 주름 개선" style={inp} />
+                placeholder={t("예: 보습, 미백, 주름 개선", "e.g. Hydration, whitening, anti-wrinkle")} style={inp} />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>주요 성분 요청</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("주요 성분 요청", "Requested Ingredients")}</label>
               <textarea value={form.ingredients} onChange={e => setForm(p => ({ ...p, ingredients: e.target.value }))}
-                placeholder="원하는 성분이 있으시면 입력해주세요" style={ta} />
+                placeholder={t("원하는 성분이 있으시면 입력해주세요", "Enter any ingredients you'd like included")} style={ta} />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>패키지 / 용기</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("패키지 / 용기", "Packaging / Container")}</label>
               <textarea value={form.packaging} onChange={e => setForm(p => ({ ...p, packaging: e.target.value }))}
-                placeholder="용기, 포장재 관련 요청사항" style={ta} />
+                placeholder={t("용기, 포장재 관련 요청사항", "Requests for container or packaging materials")} style={ta} />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>레퍼런스</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("레퍼런스", "Reference")}</label>
               <textarea value={form.reference} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))}
-                placeholder="참고 제품, 브랜드, 이미지 링크 등" style={ta} />
+                placeholder={t("참고 제품, 브랜드, 이미지 링크 등", "Reference products, brands, image links, etc.")} style={ta} />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>추가 요청사항</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6, display: "block" }}>{t("추가 요청사항", "Additional Requests")}</label>
               <textarea value={form.additionalNotes} onChange={e => setForm(p => ({ ...p, additionalNotes: e.target.value }))}
-                placeholder="기타 요청사항을 자유롭게 입력해주세요" style={ta} />
+                placeholder={t("기타 요청사항을 자유롭게 입력해주세요", "Feel free to describe anything else you need")} style={ta} />
             </div>
           </div>
 
@@ -3423,7 +3423,7 @@ function DevRequestForm({ clientId }) {
             fontSize: 14, fontWeight: 600, color: C.accent,
             cursor: "pointer", fontFamily: FONT,
           }}>
-            + 이 제품 추가하고 다음 제품 입력
+            {t("+ 이 제품 추가하고 다음 제품 입력", "+ Add This Product & Enter Another")}
           </button>
         </div>
       </div>
@@ -3435,8 +3435,8 @@ function DevRequestForm({ clientId }) {
         position: "sticky", bottom: 0, borderTop: `1px solid ${C.border}`,
       }}>
         <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", marginBottom: 8 }}>
-          {products.length > 0 ? `${products.length}개 제품 등록됨` : ""}
-          {products.length > 0 && form.productName.trim() ? " + 작성 중 1개" : ""}
+          {products.length > 0 ? t(`${products.length}개 제품 등록됨`, `${products.length} product${products.length === 1 ? "" : "s"} added`) : ""}
+          {products.length > 0 && form.productName.trim() ? t(" + 작성 중 1개", " + 1 in progress") : ""}
         </div>
         <button onClick={submitDevForm} disabled={submitSt === "loading"} style={{
           width: "100%", padding: 16, border: "none", borderRadius: 14,
@@ -3445,7 +3445,7 @@ function DevRequestForm({ clientId }) {
           fontFamily: FONT, cursor: "pointer",
           opacity: submitSt === "loading" ? 0.6 : 1,
         }}>
-          {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 재시도" : "개발의뢰서 제출하기"}
+          {submitSt === "loading" ? t("제출 중...", "Submitting...") : submitSt === "error" ? t("오류 — 재시도", "Error — Retry") : t("개발의뢰서 제출하기", "Submit Development Request")}
         </button>
       </div>
     </div>
