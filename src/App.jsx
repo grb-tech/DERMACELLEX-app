@@ -2057,7 +2057,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{it.name}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{it.status}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, color: sc.fg, background: sc.bg, flex: "none" }}>{t(it.status)}</span>
             </span>
             <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600, ...clamp(1) }}>
               {[it.category, it.group].filter(v => v && v !== it.name).join(" · ")}
@@ -2079,11 +2079,11 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <div ref={cRef} style={{ flex: 1, overflowY: "auto", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {phaseStack.length > 0 && <button onClick={goBack} style={backBtn}>←</button>}
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 가능 품목</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{t("제조 가능 품목", "Available Products")}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, height: 50, padding: "0 16px", background: "#fff", borderRadius: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
             <span style={{ fontSize: 15, color: "#B0B0B4" }}>⌕</span>
-            <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="품목 · 제품군 · 제형 검색"
+            <input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder={t("품목 · 제품군 · 제형 검색", "Search products, categories, formulations")}
               style={{ flex: 1, border: 0, outline: "none", fontSize: 15, fontWeight: 600, fontFamily: FONT, color: "#111", background: "transparent" }} />
             {searching && (
               <button onClick={() => setCatalogQuery("")} style={{ border: 0, background: "none", color: "#B0B0B4", fontSize: 16, cursor: "pointer", padding: 2 }}>✕</button>
@@ -2098,15 +2098,15 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                   borderRadius: 18, padding: "17px 18px", cursor: "pointer", fontFamily: FONT,
                   background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: "1.5px solid transparent",
                 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{c}</span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{t(c)}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{catCount(c)}개</span>
+                    <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{lang === "en" ? `${catCount(c)}` : `${catCount(c)}개`}</span>
                     <span style={{ color: "#C4C4C6", fontSize: 16 }}>›</span>
                   </span>
                 </button>
               ))}
               {cats.length === 0 && (
-                <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>품목을 불러오는 중...</div>
+                <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>{t("품목을 불러오는 중...", "Loading products...")}</div>
               )}
             </div>
           )}
@@ -2118,7 +2118,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                   width: 32, height: 32, border: 0, borderRadius: 10, background: "#fff",
                   color: "#434343", fontSize: 16, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
                 }}>‹</button>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{catalogCat}</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{t(catalogCat)}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 <button onClick={() => setCatalogGroup("__all__")} style={{
@@ -2126,8 +2126,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                   borderRadius: 18, padding: "15px 18px", cursor: "pointer", fontFamily: FONT,
                   background: "#111", border: "1.5px solid transparent",
                 }}>
-                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#fff" }}>전체 제품군 보기</span>
-                  <span style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{catCount(catalogCat)}개</span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#fff" }}>{t("전체 제품군 보기", "View All Categories")}</span>
+                  <span style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 700 }}>{lang === "en" ? `${catCount(catalogCat)}` : `${catCount(catalogCat)}개`}</span>
                 </button>
                 {groupsInCat.map(g => (
                   <button key={g} onClick={() => setCatalogGroup(g)} style={{
@@ -2135,9 +2135,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     borderRadius: 18, padding: "15px 18px", cursor: "pointer", fontFamily: FONT,
                     background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: "1.5px solid transparent",
                   }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>{g}</span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>{t(g)}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{groupCount(g)}개</span>
+                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 700 }}>{lang === "en" ? `${groupCount(g)}` : `${groupCount(g)}개`}</span>
                       <span style={{ color: "#C4C4C6", fontSize: 16 }}>›</span>
                     </span>
                   </button>
@@ -2155,7 +2155,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     color: "#434343", fontSize: 16, cursor: "pointer", fontFamily: FONT, boxShadow: "0 1px 2px rgba(0,0,0,.06)",
                   }}>‹</button>
                   <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>
-                    {catalogCat}{catalogGroup !== "__all__" && catalogGroup !== "전체" ? ` · ${catalogGroup}` : ""}
+                    {t(catalogCat)}{catalogGroup !== "__all__" && catalogGroup !== "전체" ? ` · ${t(catalogGroup)}` : ""}
                   </span>
                 </div>
               )}
@@ -2163,7 +2163,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 {filtered.map(it => <ItemRow key={it.id} it={it} />)}
                 {filtered.length === 0 && (
                   <div style={{ padding: "40px 0", textAlign: "center", fontSize: 14, color: "#9A9A9E", fontWeight: 600 }}>
-                    검색 결과 없음 · 담당자 확인 요청 가능
+                    {t("검색 결과 없음 · 담당자 확인 요청 가능", "No results · You can request a manual check from our team")}
                   </div>
                 )}
               </div>
@@ -2172,16 +2172,16 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         </div>
         <div style={{ flex: "none", padding: "14px 20px", background: "#111", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-            <span style={{ fontSize: 12, color: "#9A9A9E", fontWeight: 600 }}>선택한 품목</span>
+            <span style={{ fontSize: 12, color: "#9A9A9E", fontWeight: 600 }}>{t("선택한 품목", "Selected Products")}</span>
             <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.3, lineHeight: 1.4, ...clamp(2) }}>
-              {pickedItems.length === 0 ? "품목을 선택해주세요" : pickedItems.map(p => p.name).join(", ")}
+              {pickedItems.length === 0 ? t("품목을 선택해주세요", "Please select a product") : pickedItems.map(p => p.name).join(", ")}
             </span>
           </div>
           <button onClick={goToDevDetail} disabled={pickedItems.length === 0} style={{
             height: 48, padding: "0 22px", border: 0, borderRadius: 16, background: C.accent, color: "#fff",
             fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, transition: "opacity .18s",
             opacity: pickedItems.length === 0 ? 0.5 : 1, flex: "none",
-          }}>{`의뢰서 ${pickedItems.length}건 작성하기`}</button>
+          }}>{t(`의뢰서 ${pickedItems.length}건 작성하기`, `Fill Out ${pickedItems.length} Request${pickedItems.length === 1 ? "" : "s"}`)}</button>
         </div>
       </div>
     );
