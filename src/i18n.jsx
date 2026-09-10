@@ -69,6 +69,44 @@ export function LangToggle({ style }) {
 
 // ── 데이터 배열(QUESTIONS · SECTION_WEIGHTS · SVC 등)에서 꺼내 쓰는 문자열 사전 ──
 const DICT = {
+  // COUNTRIES (02 고객 정보 등록 — 국가 · 주요 유통국가). 저장값은 한국어 그대로 유지하고
+  // 화면 표시만 영문으로 바꾼다.
+  "대한민국": "South Korea", "미국": "United States", "일본": "Japan", "중국": "China",
+  "베트남": "Vietnam", "태국": "Thailand", "인도네시아": "Indonesia", "말레이시아": "Malaysia",
+  "필리핀": "Philippines", "싱가포르": "Singapore", "호주": "Australia", "캐나다": "Canada",
+  "영국": "United Kingdom", "독일": "Germany", "프랑스": "France", "UAE": "UAE",
+  "사우디아라비아": "Saudi Arabia", "러시아": "Russia", "브라질": "Brazil", "멕시코": "Mexico",
+  "기타": "Other",
+
+  // 사업자 구분 / 03류 상표 / 화장품책임판매업 등록
+  "법인": "Corporation", "개인": "Individual", "예비창업": "Pre-startup",
+  "보유": "Held", "출원중": "Filing", "미보유": "Not held",
+  "등록완료": "Registered", "등록예정": "Planned", "미등록": "Not registered",
+
+  // 문의 경로
+  "검색엔진": "Search engine", "SNS": "Social media", "온라인광고": "Online ad",
+  "제품·제조사검색": "Product/manufacturer search", "제품레퍼런스": "Product reference",
+  "지인·업계추천": "Referral", "기존고객·재문의": "Returning customer", "박람회·전시회": "Trade show",
+  "세미나·교육": "Seminar/training", "영업담당자": "Sales rep", "파트너·협력사": "Partner",
+  "B2B플랫폼": "B2B platform", "언론·콘텐츠": "Press/content",
+
+  // 노션 상태값 어휘 — 문의 / 의뢰서 / 상담 / 가견적 / 계약 / 프로젝트·개발진행 전 단계에서
+  // 공통으로 쓰는 '상태' 표시값. 저장값은 그대로 두고 화면 표시만 바꾼다.
+  "접수": "Received", "상담": "Consulting", "견적": "Quoting", "계약": "Contracting",
+  "프로젝트 전환": "Converted to Project", "보완": "Needs Follow-up", "보류": "On Hold",
+  "종료": "Closed", "14일 내 미날인 종료": "Closed (Unsigned in 14 Days)",
+  "시작 전": "Not Started", "진행 중": "In Progress", "완료": "Done",
+  "일정 제안": "Proposed", "확정": "Confirmed",
+  "작성 전": "Not Drafted", "작성 중": "Drafting", "내부 검토": "Internal Review",
+  "고객 공개": "Shared with Customer", "수정 협의": "Revision Discussion", "만료": "Expired", "취소": "Cancelled",
+  "발송 준비": "Preparing to Send", "발송 완료": "Sent", "날인 대기": "Awaiting Signature",
+  "날인 완료": "Signed", "수정 발송": "Resent (Revised)", "기한 연장": "Deadline Extended",
+  "진행 예정": "Upcoming", "중단": "Discontinued", "고객 확인 대기": "Awaiting Customer Review",
+  "보완 필요": "Needs Follow-up", "예정": "Scheduled",
+  "가능": "Available", "조건부 검토": "Conditional Review", "검토 필요": "Needs Review", "불가": "Unavailable",
+  "제조 문의": "Manufacturing Inquiry",
+
+
   // SECTION_WEIGHTS: 섹션 라벨
   "사업·브랜드": "Business & Brand",
   "제품·생산": "Product & Production",

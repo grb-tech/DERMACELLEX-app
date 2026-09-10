@@ -1779,8 +1779,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button onClick={() => setPhase("intro")} style={backBtn}>←</button>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>고객 정보 등록</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 3, fontWeight: 600 }}>진단 전 1회만 입력하면 이후 문의에 자동 연결됩니다</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{t("고객 정보 등록", "Register Your Info")}</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 3, fontWeight: 600 }}>{t("진단 전 1회만 입력하면 이후 문의에 자동 연결됩니다", "Enter this once before diagnosis — it's automatically linked to future inquiries")}</div>
             </div>
           </div>
         </div>
@@ -1788,40 +1788,40 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
           {/* 사업자 정보 */}
           <div style={card2}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>사업자 정보</div>
-            <UField label="회사명" req>
-              <input value={form.businessName} placeholder="더마테스트 주식회사" onChange={e => setField("businessName", e.target.value)} style={uInpBig} />
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>{t("사업자 정보", "Business Information")}</div>
+            <UField label={t("회사명", "Company Name")} req>
+              <input value={form.businessName} placeholder={t("더마테스트 주식회사", "Dermatest Inc.")} onChange={e => setField("businessName", e.target.value)} style={uInpBig} />
               <Err f="businessName" />
             </UField>
-            <UField label="대표자" req>
-              <input value={form.ceoName} placeholder="이도현" onChange={e => setField("ceoName", e.target.value)} style={uInp} />
+            <UField label={t("대표자", "CEO")} req>
+              <input value={form.ceoName} placeholder={t("이도현", "Dohyun Lee")} onChange={e => setField("ceoName", e.target.value)} style={uInp} />
               <Err f="ceoName" />
             </UField>
-            <UField label="사업자 구분" req>
+            <UField label={t("사업자 구분", "Business Type")} req>
               <div style={{ display: "flex", gap: 7 }}>
                 {["법인", "개인", "예비창업"].map(v => (
-                  <button key={v} onClick={() => setField("businessType", v)} style={toggle3(form.businessType === v)}>{v}</button>
+                  <button key={v} onClick={() => setField("businessType", v)} style={toggle3(form.businessType === v)}>{t(v)}</button>
                 ))}
               </div>
               <Err f="businessType" />
             </UField>
-            <UField label="국가" req>
+            <UField label={t("국가", "Country")} req>
               <select value={form.country} onChange={e => setField("country", e.target.value)} style={{ ...uInp, appearance: "none" }}>
-                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {COUNTRIES.map(c => <option key={c} value={c}>{t(c)}</option>)}
               </select>
             </UField>
-            <UField label="03류 상표">
+            <UField label={t("03류 상표", "Class 3 Trademark")}>
               <div style={{ display: "flex", gap: 7 }}>
                 {[{ v: "보유", l: "보유" }, { v: "출원중", l: "출원중" }, { v: "미보유", l: "미보유" }].map(({ v, l }) => (
-                  <button key={v} onClick={() => setField("hasTrademark", v)} style={toggle3(form.hasTrademark === v)}>{l}</button>
+                  <button key={v} onClick={() => setField("hasTrademark", v)} style={toggle3(form.hasTrademark === v)}>{t(l)}</button>
                 ))}
               </div>
               <Err f="hasTrademark" />
             </UField>
-            <UField label="화장품책임판매업 등록">
+            <UField label={t("화장품책임판매업 등록", "Cosmetics Distributor Registration")}>
               <div style={{ display: "flex", gap: 7 }}>
                 {[{ v: "등록완료", l: "등록완료" }, { v: "등록예정", l: "등록예정" }, { v: "미등록", l: "미등록" }].map(({ v, l }) => (
-                  <button key={v} onClick={() => setField("hasLicense", v)} style={toggle3(form.hasLicense === v)}>{l}</button>
+                  <button key={v} onClick={() => setField("hasLicense", v)} style={toggle3(form.hasLicense === v)}>{t(l)}</button>
                 ))}
               </div>
               <Err f="hasLicense" />
@@ -1830,25 +1830,25 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
           {/* 담당자 정보 */}
           <div style={card2}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>담당자 정보</div>
-            <UField label="이름" req>
-              <input value={form.name} placeholder="김예시" onChange={e => setField("name", e.target.value)} style={uInp} />
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>{t("담당자 정보", "Contact Information")}</div>
+            <UField label={t("이름", "Name")} req>
+              <input value={form.name} placeholder={t("김예시", "Yeji Kim")} onChange={e => setField("name", e.target.value)} style={uInp} />
               <Err f="name" />
             </UField>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <UField label="부서">
-                <input value={form.department} placeholder="마케팅팀" onChange={e => setField("department", e.target.value)} style={uInp} />
+              <UField label={t("부서", "Department")}>
+                <input value={form.department} placeholder={t("마케팅팀", "Marketing")} onChange={e => setField("department", e.target.value)} style={uInp} />
               </UField>
-              <UField label="직함">
-                <input value={form.position} placeholder="대리" onChange={e => setField("position", e.target.value)} style={uInp} />
+              <UField label={t("직함", "Title")}>
+                <input value={form.position} placeholder={t("대리", "Manager")} onChange={e => setField("position", e.target.value)} style={uInp} />
               </UField>
             </div>
-            <UField label="연락처" req>
+            <UField label={t("연락처", "Phone")} req>
               <input value={form.phone} placeholder="010-1234-5678" type="tel" inputMode="tel"
                 onChange={e => setField("phone", e.target.value.replace(/[^\d+\-() ]/g, ""))} style={uInp} />
               <Err f="phone" />
             </UField>
-            <UField label="이메일" req>
+            <UField label={t("이메일", "Email")} req>
               <input value={form.email} placeholder="brand@dermatest.co.kr" type="email"
                 onChange={e => { setField("email", e.target.value); setExistingCustomer(null); }}
                 onBlur={lookupExisting} style={uInp} />
@@ -1857,17 +1857,17 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             {existingCustomer && !existingDismissed && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "#EAF6F0", border: "1px solid #CBE7DA" }}>
                 <span style={{ fontSize: 13, color: "#1F6B4A", fontWeight: 700, lineHeight: 1.5 }}>
-                  {existingCustomer.contact.name}님, 등록된 고객으로 확인되었습니다 — 진단 없이 바로 진행할 수 있습니다.
+                  {t(`${existingCustomer.contact.name}님, 등록된 고객으로 확인되었습니다 — 진단 없이 바로 진행할 수 있습니다.`, `Hi ${existingCustomer.contact.name}, we found you as a registered customer — you can skip diagnosis and continue right away.`)}
                 </span>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => setPhase("returning")} style={{
                     flex: 1, height: 40, border: 0, borderRadius: 10, background: "#1F6B4A", color: "#fff",
                     fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
-                  }}>이전 정보로 진행</button>
+                  }}>{t("이전 정보로 진행", "Continue with Previous Info")}</button>
                   <button onClick={() => setExistingDismissed(true)} style={{
                     flex: "none", height: 40, padding: "0 14px", border: "1px solid #CBE7DA", borderRadius: 10, background: "transparent",
                     color: "#1F6B4A", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
-                  }}>새로 입력할게요</button>
+                  }}>{t("새로 입력할게요", "I'll Enter New Info")}</button>
                 </div>
               </div>
             )}
@@ -1875,22 +1875,22 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
           {/* 주요 유통국가 + 문의 경로 */}
           <div style={card2}>
-            <UField label="주요 유통국가" req>
-              <span style={{ fontWeight: 400, fontSize: 12, color: "#B0B0B4", marginLeft: 4 }}>복수 선택</span>
+            <UField label={t("주요 유통국가", "Main Distribution Countries")} req>
+              <span style={{ fontWeight: 400, fontSize: 12, color: "#B0B0B4", marginLeft: 4 }}>{t("복수 선택", "Multiple selection")}</span>
             </UField>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: -8 }}>
               {COUNTRIES.map(c => (
-                <button key={c} onClick={() => toggleDist(c)} style={pill2(form.distributionCountries.includes(c))}>{c}</button>
+                <button key={c} onClick={() => toggleDist(c)} style={pill2(form.distributionCountries.includes(c))}>{t(c)}</button>
               ))}
             </div>
             <Err f="distributionCountries" />
             <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>문의 경로</div>
-              <div style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600 }}>더마셀렉스를 알게 된 경로를 하나만 선택해 주세요</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: -0.2 }}>{t("문의 경로", "How You Found Us")}</div>
+              <div style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600 }}>{t("더마셀렉스를 알게 된 경로를 하나만 선택해 주세요", "Please select the one way you found out about DERMACELLEX")}</div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {["검색엔진", "SNS", "온라인광고", "제품·제조사검색", "제품레퍼런스", "지인·업계추천", "기존고객·재문의", "박람회·전시회", "세미나·교육", "영업담당자", "파트너·협력사", "B2B플랫폼", "언론·콘텐츠", "기타"].map(s => (
-                <button key={s} onClick={() => setField("inquirySource", s)} style={pill2(form.inquirySource === s)}>{s}</button>
+                <button key={s} onClick={() => setField("inquirySource", s)} style={pill2(form.inquirySource === s)}>{t(s)}</button>
               ))}
             </div>
           </div>
@@ -1903,7 +1903,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
             opacity: submitSt === "loading" ? 0.6 : 1,
           }}>
-            {submitSt === "loading" ? "저장 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "진단 시작"}
+            {submitSt === "loading" ? t("저장 중...", "Saving...") : submitSt === "error" ? t("오류 — 잠시 후 재시도", "Error — please try again") : t("진단 시작", "Start Diagnosis")}
           </button>
         </div>
       </div>
@@ -1930,8 +1930,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <button onClick={() => setPhase("portal")} style={backBtn}>←</button>
             )}
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>다시 오셨네요</div>
-              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>등록된 거래처로 확인되어 진단을 건너뜁니다</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{t("다시 오셨네요", "Welcome Back")}</div>
+              <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>{t("등록된 거래처로 확인되어 진단을 건너뜁니다", "You're a registered customer, so diagnosis is skipped")}</div>
             </div>
           </div>
 
@@ -1942,10 +1942,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4 }}>{client.name}</span>
                 <span style={{ fontSize: 12.5, color: "#9A9A9E", fontWeight: 600 }}>{[contact.name, contact.position, contact.department].filter(Boolean).join(" · ")}</span>
               </span>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: "5px 10px", borderRadius: 99, background: "#2A2A2E", color: "#E4E4E4", flex: "none" }}>기존</span>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "5px 10px", borderRadius: 99, background: "#2A2A2E", color: "#E4E4E4", flex: "none" }}>{t("기존", "Returning")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, paddingTop: 16, borderTop: "1px solid #2A2A2E" }}>
-              {[["누적 문의", stats.totalInquiries], ["진행 프로젝트", stats.activeProjects], ["출시 품목", stats.shippedProducts]].map(([label, n]) => (
+              {[[t("누적 문의", "Total Inquiries"), stats.totalInquiries], [t("진행 프로젝트", "Active Projects"), stats.activeProjects], [t("출시 품목", "Launched Products"), stats.shippedProducts]].map(([label, n]) => (
                 <div key={label} style={{ flex: 1 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.6 }}>{n}</div>
                   <div style={{ fontSize: 11.5, color: "#8A8A8E", fontWeight: 600, marginTop: 2 }}>{label}</div>
@@ -1955,12 +1955,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           </div>
 
           <div style={{ display: "flex", gap: 10, padding: "14px 16px", borderRadius: 16, background: "#EAF6F0", border: "1px solid #CBE7DA" }}>
-            <span style={{ fontSize: 13, color: "#1F6B4A", fontWeight: 700, lineHeight: 1.5 }}>맞춤 진단 생략 · 거래처와 담당자 정보 자동 연결됨</span>
+            <span style={{ fontSize: 13, color: "#1F6B4A", fontWeight: 700, lineHeight: 1.5 }}>{t("맞춤 진단 생략 · 거래처와 담당자 정보 자동 연결됨", "Diagnosis skipped · Your company and contact info are linked automatically")}</span>
           </div>
 
           {history.length > 0 && (
             <>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#111", marginTop: 2 }}>이전 문의 이어가기</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#111", marginTop: 2 }}>{t("이전 문의 이어가기", "Continue a Previous Inquiry")}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {history.map((h, i) => {
                   const sc = statusColor(h.status);
@@ -1968,10 +1968,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     <div key={i} style={{ borderRadius: 18, padding: 16, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", flexDirection: "column", gap: 9 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E" }}>{h.uid}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: sc.fg, background: sc.bg }}>{h.status || "-"}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 99, color: sc.fg, background: sc.bg }}>{h.status ? t(h.status) : "-"}</span>
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{h.type || "제조 문의"}</span>
-                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{h.createdAt ? new Date(h.createdAt).toLocaleDateString("ko") : "-"}</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>{h.type ? t(h.type) : t("제조 문의", "Manufacturing Inquiry")}</span>
+                      <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{h.createdAt ? new Date(h.createdAt).toLocaleDateString(lang === "en" ? "en-US" : "ko") : "-"}</span>
                     </div>
                   );
                 })}
@@ -1983,17 +1983,17 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             marginTop: 4, borderRadius: 18, padding: 18, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.05)",
             display: "flex", flexDirection: "column", gap: 10,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>새 제조 문의 시작하기</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{t("새 제조 문의 시작하기", "Start a New Inquiry")}</div>
             <button onClick={() => registerExisting(true)} disabled={submitSt === "loading"} style={{
               height: 54, border: 0, borderRadius: 16, background: C.accent, color: "#fff",
               fontSize: 15.5, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
               opacity: submitSt === "loading" ? 0.6 : 1,
-            }}>제조 품목 선택부터 시작</button>
+            }}>{t("제조 품목 선택부터 시작", "Start with Product Selection")}</button>
             <button onClick={() => registerExisting(false)} disabled={submitSt === "loading"} style={{
               height: 54, border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff", color: "#434343",
               fontSize: 15.5, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
               opacity: submitSt === "loading" ? 0.6 : 1,
-            }}>{submitSt === "loading" ? "처리 중..." : "상담부터 받을게요"}</button>
+            }}>{submitSt === "loading" ? t("처리 중...", "Processing...") : t("상담부터 받을게요", "I'd Like to Consult First")}</button>
           </div>
         </div>
       </div>
