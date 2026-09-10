@@ -2757,12 +2757,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 <span style={{ width: 42, height: 42, borderRadius: 14, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, fontWeight: 800, flex: "none" }}>Z</span>
                 <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
                   <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", letterSpacing: -0.4 }}>
-                    {meeting.confirmed ? `제조 상담 · ${fmt(meeting.confirmed)}` : "제조 상담 · 일정 조율 중"}
+                    {meeting.confirmed ? `${t("제조 상담", "Consultation")} · ${fmt(meeting.confirmed)}` : t("제조 상담 · 일정 조율 중", "Consultation · Scheduling in progress")}
                   </span>
-                  <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? "Zoom 링크 확정" : meeting.status || "-"}</span>
+                  <span style={{ fontSize: 12.5, color: "#8A8A8E", fontWeight: 600 }}>{meeting.zoomLink ? t("Zoom 링크 확정", "Zoom Link Ready") : meeting.status ? t(meeting.status) : "-"}</span>
                 </span>
                 {meeting.zoomLink && (
-                  <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 800, color: C.accent, textDecoration: "none" }}>입장</a>
+                  <a href={meeting.zoomLink} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 800, color: C.accent, textDecoration: "none" }}>{t("입장", "Join")}</a>
                 )}
               </div>
             )}
@@ -2771,21 +2771,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               height: 54, border: "1.5px dashed #C4C4C6", borderRadius: 18, background: "transparent", color: "#434343",
               fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.3,
               opacity: submitSt === "loading" ? 0.6 : 1,
-            }}>{submitSt === "loading" ? "확인 중..." : "+ 새 제조 문의 시작하기"}</button>
+            }}>{submitSt === "loading" ? t("확인 중...", "Checking...") : t("+ 새 제조 문의 시작하기", "+ Start a New Inquiry")}</button>
           </>)}
 
           {portalTab === "inquiry" && (<>
             <div style={placeholder}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 {inquiry.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{inquiry.uid}</span>}
-                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || "제조개발 문의"}</span>
+                <span style={{ fontSize: 15.5, fontWeight: 800, color: "#111", letterSpacing: -0.4, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inquiry.name || t("제조개발 문의", "Manufacturing Inquiry")}</span>
               </div>
-              <div style={{ fontSize: 13, color: C.accent, fontWeight: 700, marginTop: 6 }}>현재 상태 · {inquiry.status || "-"}</div>
+              <div style={{ fontSize: 13, color: C.accent, fontWeight: 700, marginTop: 6 }}>{t("현재 상태", "Current Status")} · {inquiry.status ? t(inquiry.status) : "-"}</div>
             </div>
 
             <div style={card2}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>내가 작성한 제품개발의뢰서</div>
-              {products.length === 0 && <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>작성된 개발의뢰서가 없습니다.</div>}
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{t("내가 작성한 제품개발의뢰서", "My Development Request Forms")}</div>
+              {products.length === 0 && <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("작성된 개발의뢰서가 없습니다.", "No development requests yet.")}</div>}
               {products.map((p, i) => {
                 const isOpen = expandedProduct === i;
                 const filled = ALL_DEV_FIELDS
@@ -2796,7 +2796,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     const hasValue = Array.isArray(v) ? v.length > 0 : v !== "" && v != null;
                     // 부자재는 사급이 비어 있어도 턴키만 고른 경우가 있어 두 값을 함께 본다.
                     if (hasValue || (f.turnkeyKey && p[f.turnkeyKey]?.length)) shown.push({ f, value: fmtFieldValue(f, v, p) });
-                    if (f.otherKey && p[f.otherKey]) shown.push({ f: { ...f, key: f.otherKey, label: f.otherLabel || `${f.label} 직접 입력` }, value: p[f.otherKey] });
+                    if (f.otherKey && p[f.otherKey]) shown.push({ f: { ...f, key: f.otherKey, label: f.otherLabel || t(`${f.label} 직접 입력`, `${t(f.label)} (manual)`) }, value: p[f.otherKey] });
                     return shown.filter(s => s.value);
                   });
                 return (
@@ -2805,9 +2805,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                       width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
                       padding: "12px 0", border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT, textAlign: "left",
                     }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || "(제목 없음)"}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{p.name || t("(제목 없음)", "(Untitled)")}</span>
                       <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status || "-"}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{p.status ? t(p.status) : "-"}</span>
                         <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
                       </span>
                     </button>
@@ -2817,12 +2817,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                           <button onClick={() => startEditingProduct(p)} style={{
                             alignSelf: "flex-start", height: 36, padding: "0 14px", borderRadius: 99, cursor: "pointer", fontFamily: FONT,
                             border: "1.5px solid #E4E4E4", background: "#fff", color: "#434343", fontSize: 12.5, fontWeight: 800,
-                          }}>수정하기</button>
+                          }}>{t("수정하기", "Edit")}</button>
                         )}
-                        {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>작성된 상세 항목이 없습니다.</div>}
+                        {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>{t("작성된 상세 항목이 없습니다.", "No details entered yet.")}</div>}
                         {filled.map(({ f, value }) => (
                           <div key={f.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600, flex: "none" }}>{f.label}</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600, flex: "none" }}>{t(f.label)}</span>
                             <span style={{ color: "#111", fontWeight: 700, textAlign: "right", whiteSpace: "pre-line" }}>{value}</span>
                           </div>
                         ))}
@@ -2837,8 +2837,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           {portalTab === "estimate" && (<>
             {estimates.length === 0 && (
               <div style={placeholder}>
-                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>가견적</div>
-                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>아직 생성된 가견적이 없습니다. 담당자 검토 후 이곳에 공개됩니다.</div>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111", marginBottom: 6 }}>{t("가견적", "Estimate")}</div>
+                <div style={{ fontSize: 13.5, color: "#8A8A8E", fontWeight: 600 }}>{t("아직 생성된 가견적이 없습니다. 담당자 검토 후 이곳에 공개됩니다.", "No estimate has been created yet. It will appear here after our team's review.")}</div>
               </div>
             )}
             {estimates.map((e, i) => {
@@ -2852,12 +2852,12 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                         {e.uid && <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#8A8A8E", flex: "none" }}>{e.uid}</span>}
-                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name || "가견적"}{e.version ? ` v${e.version}` : ""}</span>
+                        <span style={{ fontSize: 14.5, fontWeight: 800, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name || t("가견적", "Estimate")}{e.version ? ` v${e.version}` : ""}</span>
                       </span>
                       <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.6 }}>{fmtMoney(e.totalAmount, e.currency)}</span>
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{e.status || "-"}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "3px 9px", borderRadius: 99 }}>{e.status ? t(e.status) : "-"}</span>
                       <span style={{ color: "#B0B0B4", fontSize: 11 }}>{isOpen ? "▲" : "▼"}</span>
                     </span>
                   </button>
@@ -2867,25 +2867,25 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                         {e.quoteDate && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>견적일</span>
-                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.quoteDate).toLocaleDateString("ko")}</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("견적일", "Quote Date")}</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.quoteDate).toLocaleDateString(locale)}</span>
                           </div>
                         )}
                         {e.validUntil && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>유효기간</span>
-                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.validUntil).toLocaleDateString("ko")}까지</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("유효기간", "Valid Until")}</span>
+                            <span style={{ color: "#111", fontWeight: 700 }}>{new Date(e.validUntil).toLocaleDateString(locale)}{t("까지", "")}</span>
                           </div>
                         )}
                         {typeof e.supplyAmount === "number" && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>공급가액</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("공급가액", "Supply Amount")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtMoney(e.supplyAmount, e.currency)}</span>
                           </div>
                         )}
                         {typeof e.taxAmount === "number" && (
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>세액</span>
+                            <span style={{ color: "#8A8A8E", fontWeight: 600 }}>{t("세액", "Tax")}</span>
                             <span style={{ color: "#111", fontWeight: 700 }}>{fmtMoney(e.taxAmount, e.currency)}</span>
                           </div>
                         )}
@@ -2896,9 +2896,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                           {e.items.map((it, j) => (
                             <div key={it.id || j} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: j < e.items.length - 1 ? "1px solid #F5F5F5" : "none" }}>
                               <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{it.name || it.type || "항목"}</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{it.name || it.type || t("항목", "Item")}</span>
                                 <span style={{ fontSize: 11.5, color: "#8A8A8E", fontWeight: 600 }}>
-                                  {[it.type, it.spec, it.quantity ? `${it.quantity.toLocaleString("ko")}개` : null].filter(Boolean).join(" · ") || "-"}
+                                  {[it.type, it.spec, it.quantity ? `${it.quantity.toLocaleString(locale)}${t("개", "")}` : null].filter(Boolean).join(" · ") || "-"}
                                 </span>
                               </span>
                               <span style={{ fontSize: 13.5, fontWeight: 800, color: "#111", flex: "none" }}>{fmtMoney(it.amount, e.currency)}</span>
