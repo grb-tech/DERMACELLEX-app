@@ -132,41 +132,67 @@ function AdminLogin({ onLogin }) {
   );
 }
 
-// ━━━━━━━━━━ 전체 레이아웃 (사이드바 + 본문) ━━━━━━━━━━
+// 파이프라인에 속하지 않는 DB(시스템 보조 메뉴에서만 접근) — 나머지 10개는 ClientDetail을
+// 통해서만 접근한다. ADMIN_DBS 자체는 16개 그대로 유지(getDbSchema/dbEntry가 여전히 전체를 씀).
+const SYSTEM_DB_KEYS = ["CLIENT", "CONTACT", "CATALOG", "FIELD_CONFIG", "SYNC_ERROR", "ACCESS"];
+
+const navBtnStyle = (active) => ({
+  display: "block", width: "100%", textAlign: "left", border: 0, borderRadius: 8, padding: "9px 8px",
+  fontSize: 13.5, fontFamily: FONT, cursor: "pointer", marginBottom: 2,
+  background: active ? C.accentLight : "transparent",
+  color: active ? C.accentDark : C.text,
+  fontWeight: active ? 800 : 600,
+});
+const smallBtnStyle = { height: 32, padding: "0 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.white, fontSize: 12.5, fontFamily: FONT, cursor: "pointer", color: C.text };
+const backBtnStyle = { border: 0, background: "transparent", cursor: "pointer", fontSize: 13.5, fontFamily: FONT, color: C.textSub };
+
+// ━━━━━━━━━━ 전체 레이아웃 (업무 현황 / 시스템 2개 탭 + 본문) ━━━━━━━━━━
 function AdminShell({ session, onLogout }) {
   const [dbs, setDbs] = useState([]);
-  const [activeKey, setActiveKey] = useState(null);
+  const [nav, setNav] = useState("pipeline"); // 'pipeline' | 'system'
+  const [systemActiveKey, setSystemActiveKey] = useState(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     callAdmin("dbList", {}, session.sessionToken)
-      .then(d => { setDbs(d.dbs); setActiveKey(d.dbs[0]?.key || null); })
+      .then(d => {
+        setDbs(d.dbs);
+        setSystemActiveKey(d.dbs.find(x => SYSTEM_DB_KEYS.includes(x.key))?.key || null);
+      })
       .catch(e => { if (isAuthErr(e)) onLogout(); else setErr(e.message); });
   }, []);
 
-  const sections = groupBy(dbs, "section");
-  const activeLabel = dbs.find(d => d.key === activeKey)?.label || "";
+  const systemDbs = dbs.filter(d => SYSTEM_DB_KEYS.includes(d.key));
+  const sections = groupBy(systemDbs, "section");
+  const systemActiveLabel = systemDbs.find(d => d.key === systemActiveKey)?.label || "";
 
   return (
     <div style={{ display: "flex", height: "100vh", background: C.bg }}>
-      <div style={{ width: 220, flex: "none", background: C.white, borderRight: `1px solid ${C.borderLight}`, display: "flex", flexDirection: "column", padding: "20px 12px" }}>
+      <div style={{ width: 210, flex: "none", background: C.white, borderRight: `1px solid ${C.borderLight}`, display: "flex", flexDirection: "column", padding: "20px 12px" }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, padding: "0 8px 18px" }}>DERMACELLEX<br />관리자</div>
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {Object.entries(sections).map(([section, list]) => (
-            <div key={section} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, padding: "0 8px 6px", letterSpacing: 0.4 }}>{section}</div>
-              {list.map(db => (
-                <button key={db.key} onClick={() => setActiveKey(db.key)} style={{
-                  display: "block", width: "100%", textAlign: "left", border: 0, borderRadius: 8, padding: "8px 8px",
-                  fontSize: 13, fontFamily: FONT, cursor: "pointer", marginBottom: 2,
-                  background: activeKey === db.key ? C.accentLight : "transparent",
-                  color: activeKey === db.key ? C.accentDark : C.text,
-                  fontWeight: activeKey === db.key ? 700 : 500,
-                }}>{db.label}</button>
-              ))}
-            </div>
-          ))}
-        </div>
+
+        <button onClick={() => setNav("pipeline")} style={navBtnStyle(nav === "pipeline")}>업무 현황</button>
+        <button onClick={() => setNav("system")} style={navBtnStyle(nav === "system")}>시스템</button>
+
+        {nav === "system" ? (
+          <div style={{ flex: 1, overflowY: "auto", marginTop: 14 }}>
+            {Object.entries(sections).map(([section, list]) => (
+              <div key={section} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, padding: "0 8px 6px", letterSpacing: 0.4 }}>{section}</div>
+                {list.map(db => (
+                  <button key={db.key} onClick={() => setSystemActiveKey(db.key)} style={{
+                    display: "block", width: "100%", textAlign: "left", border: 0, borderRadius: 8, padding: "8px 8px",
+                    fontSize: 13, fontFamily: FONT, cursor: "pointer", marginBottom: 2,
+                    background: systemActiveKey === db.key ? C.accentLight : "transparent",
+                    color: systemActiveKey === db.key ? C.accentDark : C.text,
+                    fontWeight: systemActiveKey === db.key ? 700 : 500,
+                  }}>{db.label}</button>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : <div style={{ flex: 1 }} />}
+
         <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 12, marginTop: 12 }}>
           <div style={{ fontSize: 11.5, color: C.textSub, padding: "0 8px 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.email}</div>
           <button onClick={onLogout} style={{ width: "100%", height: 34, border: `1px solid ${C.border}`, borderRadius: 8, background: C.white, fontSize: 12.5, fontFamily: FONT, cursor: "pointer", color: C.textSub }}>로그아웃</button>
@@ -174,8 +200,293 @@ function AdminShell({ session, onLogout }) {
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         {err && <div style={{ padding: 24, color: C.error, fontSize: 13.5 }}>{err}</div>}
-        {activeKey && <AdminList key={activeKey} dbKey={activeKey} label={activeLabel} session={session} allDbs={dbs} onAuthError={onLogout} />}
+        {nav === "pipeline" && <PipelineDashboard session={session} allDbs={dbs} onAuthError={onLogout} />}
+        {nav === "system" && systemActiveKey && (
+          <AdminList key={systemActiveKey} dbKey={systemActiveKey} label={systemActiveLabel} session={session} allDbs={dbs} onAuthError={onLogout} />
+        )}
       </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━ 업무 프로세스 대시보드 (기본 화면) ━━━━━━━━━━
+function PipelineDashboard({ session, allDbs, onAuthError }) {
+  const [selectedClientId, setSelectedClientId] = useState(null);
+
+  if (selectedClientId) {
+    return (
+      <ClientDetail
+        clientId={selectedClientId} session={session} allDbs={allDbs}
+        onClose={() => setSelectedClientId(null)} onAuthError={onAuthError}
+      />
+    );
+  }
+
+  return (
+    <div style={{ padding: 24 }}>
+      <ActionItemsBar session={session} onAuthError={onAuthError} onSelectClient={setSelectedClientId} />
+      <PipelineBoard session={session} onAuthError={onAuthError} onSelectClient={setSelectedClientId} />
+    </div>
+  );
+}
+
+function ddayLabel(dday) {
+  return dday >= 0 ? `D-${dday}` : `D+${-dday}`;
+}
+
+// ─── 오늘 확인할 항목 ───
+function ActionItemsBar({ session, onAuthError, onSelectClient }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true); setErr("");
+    callAdmin("actionItems", {}, session.sessionToken)
+      .then(setData)
+      .catch(e => { if (isAuthErr(e)) onAuthError(); else setErr(e.message); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ color: C.textSub, fontSize: 13, marginBottom: 22 }}>할 일을 불러오는 중...</div>;
+  if (err) return <div style={{ color: C.error, fontSize: 13, marginBottom: 22 }}>{err}</div>;
+  if (!data) return null;
+
+  const chips = [];
+  for (const c of data.contractsDueSoon) {
+    chips.push({
+      key: `contract-${c.id}`, tone: c.dday <= 0 ? "error" : "accent",
+      title: `${c.clientName || "(거래처 미상)"} · 계약 ${ddayLabel(c.dday)}`, sub: c.status, clientId: c.clientId,
+    });
+  }
+  for (const m of data.upcomingMeetings) {
+    chips.push({ key: `meeting-${m.id}`, tone: "neutral", title: `${m.clientName || "(거래처 미상)"} · 미팅 ${m.confirmedDate}`, sub: m.name, clientId: m.clientId });
+  }
+  for (const i of data.inquiriesNeedingFollowup) {
+    chips.push({ key: `inquiry-${i.id}`, tone: "neutral", title: `${i.clientName || "(거래처 미상)"} · 자격요건 보완 필요`, sub: i.name, clientId: i.clientId });
+  }
+  for (const n of data.unreadNotifications) {
+    chips.push({ key: `noti-${n.clientId}`, tone: "neutral", title: `${n.clientName || "(거래처 미상)"} · 미확인 알림 ${n.count}건`, sub: "", clientId: n.clientId });
+  }
+  if (data.unresolvedSyncErrors.count > 0) {
+    chips.push({
+      key: "sync-errors", tone: "error", title: `연동 오류 ${data.unresolvedSyncErrors.count}건`,
+      sub: data.unresolvedSyncErrors.heuristic === "all-rows" ? "미해결 필드를 찾지 못해 전체 표시" : "", clientId: null,
+    });
+  }
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: C.textSub, marginBottom: 10 }}>
+        오늘 확인할 항목{chips.length > 0 ? ` (${chips.length})` : ""}
+      </div>
+      {chips.length === 0 ? (
+        <div style={{ fontSize: 13, color: C.textMuted }}>지금은 급한 항목이 없습니다.</div>
+      ) : (
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+          {chips.map(c => (
+            <button key={c.key} onClick={() => c.clientId && onSelectClient(c.clientId)} style={{
+              flex: "none", minWidth: 200, maxWidth: 240, textAlign: "left", padding: "12px 14px", borderRadius: 14,
+              cursor: c.clientId ? "pointer" : "default", fontFamily: FONT,
+              border: `1px solid ${c.tone === "error" ? C.error : c.tone === "accent" ? C.accent : C.border}`,
+              background: c.tone === "error" ? "#FDECEC" : c.tone === "accent" ? C.accentLight : C.white,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.tone === "error" ? C.error : c.tone === "accent" ? C.accentDark : C.text }}>{c.title}</div>
+              {c.sub && <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.sub}</div>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 칸반 파이프라인 보드 (표 뷰 토글 겸용 — 거래처별 통합 타임라인) ───
+function PipelineBoard({ session, onAuthError, onSelectClient }) {
+  const [board, setBoard] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState("kanban");
+
+  const load = useCallback(() => {
+    setLoading(true); setErr("");
+    callAdmin("pipelineBoard", {}, session.sessionToken)
+      .then(setBoard)
+      .catch(e => { if (isAuthErr(e)) onAuthError(); else setErr(e.message); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>거래처 파이프라인</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={load} style={smallBtnStyle}>새로고침</button>
+          <div style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <button onClick={() => setViewMode("kanban")} style={{ height: 32, padding: "0 12px", border: 0, cursor: "pointer", fontFamily: FONT, fontSize: 12.5, background: viewMode === "kanban" ? C.primary : C.white, color: viewMode === "kanban" ? C.white : C.textSub }}>칸반</button>
+            <button onClick={() => setViewMode("table")} style={{ height: 32, padding: "0 12px", border: 0, cursor: "pointer", fontFamily: FONT, fontSize: 12.5, background: viewMode === "table" ? C.primary : C.white, color: viewMode === "table" ? C.white : C.textSub }}>표</button>
+          </div>
+        </div>
+      </div>
+      {err && <div style={{ color: C.error, fontSize: 13, marginBottom: 12 }}>{err}</div>}
+      {loading ? (
+        <div style={{ color: C.textSub, fontSize: 13.5 }}>불러오는 중...</div>
+      ) : !board ? null : viewMode === "kanban" ? (
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12 }}>
+          {board.columns.map(col => (
+            <div key={col.key} style={{ flex: "none", width: 216, background: C.white, borderRadius: 14, padding: 12, boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.textSub, marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
+                <span>{col.label}</span><span style={{ color: C.textMuted }}>{col.clients.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {col.clients.map(c => (
+                  <button key={c.clientId} onClick={() => onSelectClient(c.clientId)} style={{
+                    textAlign: "left", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.borderLight}`,
+                    background: C.surfaceAlt, cursor: "pointer", fontFamily: FONT,
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{c.clientName}</div>
+                    {c.subLabel && <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 3 }}>{c.subLabel}</div>}
+                    {c.contractDday != null && (
+                      <div style={{ fontSize: 11, fontWeight: 800, marginTop: 4, color: c.contractDday <= 0 ? C.error : C.accentDark }}>
+                        {ddayLabel(c.contractDday)}
+                      </div>
+                    )}
+                  </button>
+                ))}
+                {col.clients.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, padding: "2px 2px" }}>없음</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ background: C.white, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: C.surfaceAlt }}>
+                <th style={thStyle}>거래처</th><th style={thStyle}>현재 단계</th><th style={thStyle}>상태</th><th style={thStyle}>최근 업데이트</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.columns.flatMap(col => col.clients.map(c => ({ ...c, colLabel: col.label })))
+                .sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt))
+                .map(c => (
+                  <tr key={c.clientId} onClick={() => onSelectClient(c.clientId)} style={{ cursor: "pointer", borderTop: `1px solid ${C.borderLight}` }}>
+                    <td style={tdStyle}>{c.clientName}</td>
+                    <td style={tdStyle}>{c.colLabel}</td>
+                    <td style={tdStyle}>{c.subLabel || "-"}{c.contractDday != null ? ` (${ddayLabel(c.contractDday)})` : ""}</td>
+                    <td style={tdStyle}>{String(c.lastActivityAt || "").slice(0, 10)}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 거래처 하나의 전체 히스토리 ───
+const CLIENT_SECTIONS = [
+  { key: "contacts", dbKey: "CONTACT", label: "담당자", titleProp: "담당자명" },
+  { key: "scoring", dbKey: "SCORING", label: "진단", titleProp: null },
+  { key: "inquiries", dbKey: "INQUIRY", label: "문의", titleProp: "제조 문의명" },
+  { key: "devRequests", dbKey: "DEVREQUEST", label: "의뢰서(품목선택 포함)", titleProp: "제품명/가칭" },
+  { key: "meetings", dbKey: "MEETING", label: "상담", titleProp: "미팅명" },
+  { key: "estimates", dbKey: "ESTIMATE", label: "가견적", titleProp: "가견적명" },
+  { key: "contracts", dbKey: "CONTRACT", label: "계약", titleProp: "계약명" },
+  { key: "projects", dbKey: "PROJECT", label: "제조진행", titleProp: "프로젝트명" },
+  { key: "notifications", dbKey: "NOTIFICATION", label: "알림", titleProp: "알림 제목" },
+  { key: "accessHistory", dbKey: "ACCESS", label: "접근 이력", titleProp: null },
+];
+
+function ClientDetail({ clientId, session, allDbs, onClose, onAuthError }) {
+  const [detail, setDetail] = useState(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null | { dbKey, pageId, prefillRelation? }
+
+  const load = useCallback(() => {
+    setLoading(true); setErr("");
+    callAdmin("clientDetail", { clientId }, session.sessionToken)
+      .then(setDetail)
+      .catch(e => { if (isAuthErr(e)) onAuthError(); else setErr(e.message); })
+      .finally(() => setLoading(false));
+  }, [clientId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (editing) {
+    return (
+      <AdminRecordForm
+        dbKey={editing.dbKey} pageId={editing.pageId} session={session} allDbs={allDbs}
+        prefillRelation={editing.prefillRelation}
+        onClose={() => setEditing(null)}
+        onSaved={() => { setEditing(null); load(); }}
+        onAuthError={onAuthError}
+      />
+    );
+  }
+
+  if (loading) return <div style={{ padding: 24, color: C.textSub, fontSize: 13.5 }}>불러오는 중...</div>;
+  if (err) {
+    return (
+      <div style={{ padding: 24 }}>
+        <button onClick={onClose} style={backBtnStyle}>← 파이프라인으로</button>
+        <div style={{ color: C.error, fontSize: 13.5, marginTop: 12 }}>{err}</div>
+      </div>
+    );
+  }
+  if (!detail) return null;
+
+  const clientName = detail.client?.["법인 · 개인명"] || "(이름 없음)";
+
+  return (
+    <div style={{ padding: 24, maxWidth: 900 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <button onClick={onClose} style={backBtnStyle}>← 파이프라인으로</button>
+        <button onClick={() => setEditing({ dbKey: "CLIENT", pageId: clientId })} style={smallBtnStyle}>거래처 정보 수정</button>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 20 }}>{clientName}</div>
+
+      {CLIENT_SECTIONS.map(sec => (
+        <ClientSection
+          key={sec.key} section={sec} rows={detail[sec.key] || []}
+          onOpenRow={(pageId) => setEditing({ dbKey: sec.dbKey, pageId })}
+          onNewRow={() => setEditing({ dbKey: sec.dbKey, pageId: null, prefillRelation: { targetKey: "CLIENT", id: clientId } })}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ClientSection({ section, rows, onOpenRow, onNewRow }) {
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text }}>
+          {section.label} <span style={{ color: C.textMuted, fontWeight: 500 }}>({rows.length})</span>
+        </div>
+        <button onClick={onNewRow} style={smallBtnStyle}>+ 새로 만들기</button>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.textMuted, padding: "4px 2px 0" }}>없음</div>
+      ) : (
+        <div style={{ background: C.white, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
+          {rows.map(r => (
+            <div key={r.id} onClick={() => onOpenRow(r.id)} style={{
+              padding: "10px 14px", cursor: "pointer", borderTop: `1px solid ${C.borderLight}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13,
+            }}>
+              <span style={{ color: C.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {section.titleProp ? (r[section.titleProp] || "(제목 없음)") : (r["제출일"] || r["마지막 접속일"] || r.id.slice(0, 8))}
+              </span>
+              {r["상태"] != null && r["상태"] !== "" && <span style={{ fontSize: 11.5, color: C.textSub, flex: "none", marginLeft: 10 }}>{r["상태"]}</span>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -258,7 +569,7 @@ const thStyle = { textAlign: "left", padding: "10px 14px", fontSize: 11.5, fontW
 const tdStyle = { padding: "10px 14px", color: C.text, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 // ━━━━━━━━━━ 생성 · 수정 폼 ━━━━━━━━━━
-function AdminRecordForm({ dbKey, pageId, session, allDbs, onClose, onSaved, onAuthError }) {
+function AdminRecordForm({ dbKey, pageId, session, allDbs, prefillRelation, onClose, onSaved, onAuthError }) {
   const [schema, setSchema] = useState(null);
   const [values, setValues] = useState({});
   const [loading, setLoading] = useState(true);
@@ -270,7 +581,17 @@ function AdminRecordForm({ dbKey, pageId, session, allDbs, onClose, onSaved, onA
     const req = pageId
       ? callAdmin("get", { dbKey, pageId }, session.sessionToken)
       : callAdmin("schema", { dbKey }, session.sessionToken).then(d => ({ schema: d.schema, row: {} }));
-    req.then(d => { setSchema(d.schema); setValues(d.row || {}); })
+    req.then(d => {
+      setSchema(d.schema);
+      let row = d.row || {};
+      // 거래처 상세에서 "+ 새로 만들기"로 들어왔을 때만 관계를 미리 채운다 — 대상 DB의 필드명이
+      // '거래처명'/'제조 의뢰 거래처'로 다르므로 이름이 아니라 relationTarget으로 찾는다.
+      if (!pageId && prefillRelation) {
+        const f = d.schema.fields.find(f => f.type === "relation" && f.relationTarget === prefillRelation.targetKey);
+        if (f) row = { ...row, [f.name]: [prefillRelation.id] };
+      }
+      setValues(row);
+    })
       .catch(e => { if (isAuthErr(e)) onAuthError(); else setErr(e.message); })
       .finally(() => setLoading(false));
   }, [dbKey, pageId]);
