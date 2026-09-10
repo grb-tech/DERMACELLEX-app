@@ -2216,7 +2216,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
         <div style={{ flex: "none", padding: "14px 20px 0" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
             <span style={{ fontSize: 20, fontWeight: 800, color: "#111", letterSpacing: -0.7 }}>
-              기획개발의뢰서{editingPageId ? " 수정" : ""}
+              {t("기획개발의뢰서", "Development Request Form")}{editingPageId ? t(" 수정", " Edit") : ""}
             </span>
             {!editingPageId && <span style={{ fontSize: 12.5, fontWeight: 800, color: C.accent }}>{devIdx + 1} / {devForms.length}</span>}
           </div>
@@ -2237,7 +2237,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: active ? "#fff" : "#111", whiteSpace: "nowrap" }}>{f.productName}</div>
                   </button>
                   {devForms.length > 1 && (
-                    <button onClick={() => removeDevItem(i)} title="이 품목 빼기" style={{
+                    <button onClick={() => removeDevItem(i)} title={t("이 품목 빼기", "Remove this product")} style={{
                       border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT,
                       padding: "0 11px 0 5px", fontSize: 13, color: active ? "#8A8A8E" : "#C4C4C6",
                     }}>✕</button>
@@ -2249,7 +2249,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               flex: "none", borderRadius: 14, padding: "9px 15px", cursor: "pointer", fontFamily: FONT,
               background: "transparent", border: "1.5px dashed #C4C4C6", color: "#434343",
               fontSize: 13, fontWeight: 800, whiteSpace: "nowrap",
-            }}>+ 품목 추가</button>
+            }}>{t("+ 품목 추가", "+ Add Product")}</button>
           </div>
           <div style={{ display: "flex", gap: 4, paddingBottom: 12, marginBottom: 2 }}>
             {DEV_FIELD_GROUPS.map((g, i) => (
@@ -2262,7 +2262,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 flex: "none", border: 0, background: i === devStep ? "#111" : "#EFEFF0", borderRadius: 99,
                 cursor: "pointer", fontFamily: FONT, padding: "7px 13px", whiteSpace: "nowrap",
                 fontSize: 12, fontWeight: 800, color: i === devStep ? "#fff" : "#8A8A8E",
-              }}>{i + 1}. {g.title}</button>
+              }}>{i + 1}. {t(g.title)}</button>
             ))}
           </div>
         </div>
@@ -2279,7 +2279,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             <button onClick={goPrev} style={{
               height: 52, padding: "0 20px", border: "1.5px solid #E4E4E4", borderRadius: 16, background: "#fff",
               color: "#434343", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
-            }}>이전</button>
+            }}>{t("이전", "Back")}</button>
           )}
           <button
             onClick={goNext}
@@ -2289,9 +2289,9 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT,
               opacity: (!d.productName.trim() || submitSt === "loading") ? 0.6 : 1,
             }}>
-            {submitSt === "loading" ? "저장 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" :
-              !isLastStep ? "다음" : !isLastItem ? "다음 품목" :
-                editingPageId ? "수정 내용 저장" : `의뢰서 ${devForms.length}건 제출하고 상담 신청`}
+            {submitSt === "loading" ? t("저장 중...", "Saving...") : submitSt === "error" ? t("오류 — 잠시 후 재시도", "Error — please try again") :
+              !isLastStep ? t("다음", "Next") : !isLastItem ? t("다음 품목", "Next Product") :
+                editingPageId ? t("수정 내용 저장", "Save Changes") : t(`의뢰서 ${devForms.length}건 제출하고 상담 신청`, `Submit ${devForms.length} Request${devForms.length === 1 ? "" : "s"} & Request Consultation`)}
           </button>
         </div>
       </div>
@@ -2310,10 +2310,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
 
     const timeSelect = (dateVal, timeVal, onChange) => (
       <select value={timeVal || ""} onChange={e => onChange(e.target.value)} style={uInp}>
-        <option value="">시간 선택</option>
-        {TIME_SLOTS.map(t => {
-          const booked = isSlotBooked(bookedSlots, dateVal, t);
-          return <option key={t} value={t} disabled={booked}>{t}{booked ? " (예약됨)" : ""}</option>;
+        <option value="">{t("시간 선택", "Select time")}</option>
+        {TIME_SLOTS.map(tm => {
+          const booked = isSlotBooked(bookedSlots, dateVal, tm);
+          return <option key={tm} value={tm} disabled={booked}>{tm}{booked ? t(" (예약됨)", " (booked)") : ""}</option>;
         })}
       </select>
     );
@@ -2325,50 +2325,54 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {phaseStack.length > 0 && <button onClick={goBack} style={backBtn}>←</button>}
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>제조 상담 일정</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: -0.8 }}>{t("제조 상담 일정", "Consultation Schedule")}</div>
               <div style={{ fontSize: 13.5, color: "#8A8A8E", marginTop: 5, fontWeight: 600 }}>
-                담당자 배정 예정 · 30분 · Zoom{form.willWriteDoc ? " · 개발의뢰서는 상담 후 별도 안내" : ""}
+                {t("담당자 배정 예정 · 30분 · Zoom", "A team member will be assigned · 30 min · Zoom")}{form.willWriteDoc ? t(" · 개발의뢰서는 상담 후 별도 안내", " · The development request form will be arranged after the consultation") : ""}
               </div>
             </div>
           </div>
 
           <div style={card2}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>희망 상담 일정</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{t("희망 상담 일정", "Preferred Consultation Times")}</div>
             <div style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600, marginTop: -8 }}>
-              담당자가 확인 후 두 일정 중 하나로 최종 확정해 안내드립니다. 이미 예약된 시간은 선택할 수 없습니다.
+              {t("담당자가 확인 후 두 일정 중 하나로 최종 확정해 안내드립니다. 이미 예약된 시간은 선택할 수 없습니다.", "Our team will review and confirm one of the two times. Already-booked slots can't be selected.")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 2 }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 1 (필수)</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>{t("희망 미팅일 1 (필수)", "Preferred Date 1 (Required)")}</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input type="date" min={todayStr} value={form.meetingDate1} onChange={e => setField("meetingDate1", e.target.value)}
                     style={{ ...uInp, borderBottom: `1.5px solid ${(errors.meetingDate1 || holiday1) ? C.error : "#E4E4E4"}` }} />
                   {timeSelect(form.meetingDate1, form.meetingTime1, v => setField("meetingTime1", v))}
                 </div>
-                {holiday1 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.</div>}
-                {!holiday1 && slot1Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
+                {holiday1 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>{t("주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.", "Weekends and holidays can't be selected. Please choose a weekday.")}</div>}
+                {!holiday1 && slot1Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>{t("이미 예약된 시간입니다. 다른 시간을 선택해주세요.", "This time is already booked. Please choose another.")}</div>}
               </div>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>희망 미팅일 2 (선택)</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E", marginBottom: 6 }}>{t("희망 미팅일 2 (선택)", "Preferred Date 2 (Optional)")}</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input type="date" min={todayStr} value={form.meetingDate2} onChange={e => setField("meetingDate2", e.target.value)}
                     style={{ ...uInp, borderBottom: `1.5px solid ${holiday2 ? C.error : "#E4E4E4"}` }} />
                   {timeSelect(form.meetingDate2, form.meetingTime2, v => setField("meetingTime2", v))}
                 </div>
-                {holiday2 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.</div>}
-                {!holiday2 && slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>이미 예약된 시간입니다. 다른 시간을 선택해주세요.</div>}
+                {holiday2 && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>{t("주말 · 공휴일은 선택할 수 없습니다. 평일을 선택해주세요.", "Weekends and holidays can't be selected. Please choose a weekday.")}</div>}
+                {!holiday2 && slot2Booked && <div style={{ fontSize: 11.5, color: C.error, fontWeight: 700, marginTop: 6 }}>{t("이미 예약된 시간입니다. 다른 시간을 선택해주세요.", "This time is already booked. Please choose another.")}</div>}
               </div>
             </div>
             <Err f="meetingDate1" />
           </div>
 
           <div style={card2}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>사전 확인 사항</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{t("사전 확인 사항", "Good to Prepare")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {["브랜드 콘셉트 자료 · 벤치마크 제품 정보", "목표 판매가 · 유통 채널 · 예상 물량", "수출 예정 국가 및 인증 요구사항"].map((t, i) => (
+              {[
+                t("브랜드 콘셉트 자료 · 벤치마크 제품 정보", "Brand concept materials · Benchmark product info"),
+                t("목표 판매가 · 유통 채널 · 예상 물량", "Target price · Distribution channels · Expected volume"),
+                t("수출 예정 국가 및 인증 요구사항", "Target export countries and certification requirements"),
+              ].map((txt, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: C.accent, marginTop: 7, flex: "none" }} />
-                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.5, fontWeight: 600 }}>{t}</span>
+                  <span style={{ fontSize: 13.5, color: "#434343", lineHeight: 1.5, fontWeight: 600 }}>{txt}</span>
                 </div>
               ))}
             </div>
@@ -2380,7 +2384,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: FONT, letterSpacing: -0.4,
             opacity: (submitSt === "loading" || slot1Booked || slot2Booked || holiday1 || holiday2) ? 0.6 : 1,
           }}>
-            {submitSt === "loading" ? "제출 중..." : submitSt === "error" ? "오류 — 잠시 후 재시도" : "상담 신청하기"}
+            {submitSt === "loading" ? t("제출 중...", "Submitting...") : submitSt === "error" ? t("오류 — 잠시 후 재시도", "Error — please try again") : t("상담 신청하기", "Request Consultation")}
           </button>
         </div>
       </div>
@@ -2408,10 +2412,10 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 <path d="M20 6L9 17l-5-5"/>
               </svg>
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: C.text }}>접수가 완료되었습니다</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: C.text }}>{t("접수가 완료되었습니다", "Your Request Has Been Received")}</h2>
             <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.7 }}>
-              아래 <strong style={{ color: C.text }}>전용 페이지 접속 코드</strong>로<br />
-              진행 상황을 바로 확인하실 수 있습니다.
+              {t("아래", "Use the")} <strong style={{ color: C.text }}>{t("전용 페이지 접속 코드", "portal access code")}</strong>{t("로", " below")}<br />
+              {t("진행 상황을 바로 확인하실 수 있습니다.", "to check your progress anytime.")}
             </p>
           </div>
 
@@ -2421,7 +2425,7 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               background: "#111", borderRadius: 18, padding: "22px 20px", marginBottom: 20,
               display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center",
             }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>전용 페이지 접속 코드 · 이메일과 함께 사용</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A9A9E" }}>{t("전용 페이지 접속 코드 · 이메일과 함께 사용", "Portal access code · Use together with your email")}</span>
               <span style={{ fontSize: 34, fontWeight: 800, color: "#fff", letterSpacing: 6, fontFamily: "ui-monospace, monospace" }}>{accessCode}</span>
               <button onClick={() => {
                 navigator.clipboard?.writeText(accessCode).then(() => {
@@ -2431,14 +2435,14 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               }} style={{
                 background: "none", border: "1px solid #2E2E32", borderRadius: 99, padding: "5px 14px",
                 color: "#E4E4E4", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT,
-              }}>{codeCopied ? "복사됨 ✓" : "코드 복사"}</button>
+              }}>{codeCopied ? t("복사됨 ✓", "Copied ✓") : t("코드 복사", "Copy Code")}</button>
               <span style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600 }}>
-                {codeEmailed ? "담당자 이메일로도 발송되었습니다 · 이 화면에서는 지금 한 번만 표시됩니다" : "이 코드는 지금 한 번만 표시됩니다 · 꼭 저장해주세요"}
+                {codeEmailed ? t("담당자 이메일로도 발송되었습니다 · 이 화면에서는 지금 한 번만 표시됩니다", "Also sent to your email · This is the only time it's shown on screen") : t("이 코드는 지금 한 번만 표시됩니다 · 꼭 저장해주세요", "This code is shown only once · Please be sure to save it")}
               </span>
               <button onClick={() => setPhase("portal-login")} style={{
                 width: "100%", height: 48, border: 0, borderRadius: 14, background: C.accent, color: "#fff",
                 fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: FONT, marginTop: 4,
-              }}>전용 페이지 바로가기</button>
+              }}>{t("전용 페이지 바로가기", "Go to My Portal")}</button>
             </div>
           )}
 
@@ -2447,19 +2451,19 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
             background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
             padding: 20, marginBottom: 20,
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 14 }}>접수 요약</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 14 }}>{t("접수 요약", "Submission Summary")}</div>
             {[
-              ["선택 서비스", `${chosen} · ${SVC[chosen].full}`],
-              ["담당자", form.name],
-              ["이메일", form.email],
-              ["연락처", form.phone],
-              ["사업자", `${form.businessType} · ${form.businessName}`],
-              ["상표", form.hasTrademark],
-              ["책임판매업", form.hasLicense],
-              ["주요 유통국가", form.distributionCountries.join(", ")],
-              ["개발의뢰서", form.willWriteDoc ? "작성 예정" : "미작성 (상담 우선)"],
-              ["미팅 1안", form.meetingDate1 ? new Date(form.meetingDate1).toLocaleString("ko") : "-"],
-              ["미팅 2안", form.meetingDate2 ? new Date(form.meetingDate2).toLocaleString("ko") : "-"],
+              [t("선택 서비스", "Service"), `${chosen} · ${SVC[chosen].full}`],
+              [t("담당자", "Contact"), form.name],
+              [t("이메일", "Email"), form.email],
+              [t("연락처", "Phone"), form.phone],
+              [t("사업자", "Business"), `${t(form.businessType)} · ${form.businessName}`],
+              [t("상표", "Trademark"), t(form.hasTrademark)],
+              [t("책임판매업", "Distributor License"), t(form.hasLicense)],
+              [t("주요 유통국가", "Main Distribution Countries"), form.distributionCountries.map(c => t(c)).join(", ")],
+              [t("개발의뢰서", "Dev Request Form"), form.willWriteDoc ? t("작성 예정", "To be completed") : t("미작성 (상담 우선)", "Not yet (consultation first)")],
+              [t("미팅 1안", "Meeting Option 1"), form.meetingDate1 ? new Date(form.meetingDate1).toLocaleString(lang === "en" ? "en-US" : "ko") : "-"],
+              [t("미팅 2안", "Meeting Option 2"), form.meetingDate2 ? new Date(form.meetingDate2).toLocaleString(lang === "en" ? "en-US" : "ko") : "-"],
             ].map(([k, v], i, arr) => (
               <div key={k} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "flex-start",
