@@ -342,18 +342,29 @@ function PipelineBoard({ session, onAuthError, onSelectClient }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {col.clients.map(c => (
-                  <button key={c.clientId} onClick={() => onSelectClient(c.clientId)} style={{
-                    textAlign: "left", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.borderLight}`,
-                    background: C.surfaceAlt, cursor: "pointer", fontFamily: FONT,
+                  <div key={c.clientId} style={{
+                    padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.borderLight}`,
+                    background: C.surfaceAlt, fontFamily: FONT,
                   }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{c.clientName}</div>
-                    {c.subLabel && <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 3 }}>{c.subLabel}</div>}
-                    {c.contractDday != null && (
-                      <div style={{ fontSize: 11, fontWeight: 800, marginTop: 4, color: c.contractDday <= 0 ? C.error : C.accentDark }}>
-                        {ddayLabel(c.contractDday)}
-                      </div>
-                    )}
-                  </button>
+                    <button type="button" onClick={() => onSelectClient(c.clientId)} style={{
+                      display: "block", width: "100%", textAlign: "left", border: 0, background: "transparent",
+                      padding: 0, cursor: "pointer", fontFamily: FONT,
+                    }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{c.clientName}</div>
+                      {c.subLabel && <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 3 }}>{c.subLabel}</div>}
+                      {c.contractDday != null && (
+                        <div style={{ fontSize: 11, fontWeight: 800, marginTop: 4, color: c.contractDday <= 0 ? C.error : C.accentDark }}>
+                          {ddayLabel(c.contractDday)}
+                        </div>
+                      )}
+                    </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 7 }}>
+                      <StaffPicker dbKey="CLIENT" pageId={c.clientId} propName="내부 담당자" label="주"
+                        value={c.mainStaffIds} session={session} onSaved={load} />
+                      <StaffPicker dbKey="CLIENT" pageId={c.clientId} propName="부담당자" label="부"
+                        value={c.subStaffIds} session={session} onSaved={load} />
+                    </div>
+                  </div>
                 ))}
                 {col.clients.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, padding: "2px 2px" }}>없음</div>}
               </div>
@@ -388,11 +399,12 @@ function PipelineBoard({ session, onAuthError, onSelectClient }) {
 }
 
 // ─── 거래처 하나의 전체 히스토리 ───
+// showStaff: 이 섹션 행마다 내부 직원 주/부 담당자를 바로 지정할 수 있는 StaffPicker를 붙인다.
 const CLIENT_SECTIONS = [
   { key: "contacts", dbKey: "CONTACT", label: "담당자", titleProp: "담당자명" },
   { key: "scoring", dbKey: "SCORING", label: "진단", titleProp: null },
-  { key: "inquiries", dbKey: "INQUIRY", label: "문의", titleProp: "제조 문의명" },
-  { key: "devRequests", dbKey: "DEVREQUEST", label: "의뢰서(품목선택 포함)", titleProp: "제품명/가칭" },
+  { key: "inquiries", dbKey: "INQUIRY", label: "문의", titleProp: "제조 문의명", showStaff: true },
+  { key: "devRequests", dbKey: "DEVREQUEST", label: "의뢰서(품목선택 포함)", titleProp: "제품명/가칭", showStaff: true },
   { key: "meetings", dbKey: "MEETING", label: "상담", titleProp: "미팅명" },
   { key: "estimates", dbKey: "ESTIMATE", label: "가견적", titleProp: "가견적명" },
   { key: "contracts", dbKey: "CONTRACT", label: "계약", titleProp: "계약명" },
@@ -405,7 +417,7 @@ function ClientDetail({ clientId, session, allDbs, onClose, onAuthError }) {
   const [detail, setDetail] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // null | { dbKey, pageId, prefillRelation? }
+  const [editing, setEditing] = useState(null); // null | { dbKey, pageId, prefillRelations? }
 
   const load = useCallback(() => {
     setLoading(true); setErr("");
@@ -421,7 +433,7 @@ function ClientDetail({ clientId, session, allDbs, onClose, onAuthError }) {
     return (
       <AdminRecordForm
         dbKey={editing.dbKey} pageId={editing.pageId} session={session} allDbs={allDbs}
-        prefillRelation={editing.prefillRelation}
+        prefillRelations={editing.prefillRelations}
         onClose={() => setEditing(null)}
         onSaved={() => { setEditing(null); load(); }}
         onAuthError={onAuthError}
@@ -448,20 +460,40 @@ function ClientDetail({ clientId, session, allDbs, onClose, onAuthError }) {
         <button onClick={onClose} style={backBtnStyle}>← 파이프라인으로</button>
         <button onClick={() => setEditing({ dbKey: "CLIENT", pageId: clientId })} style={smallBtnStyle}>거래처 정보 수정</button>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 20 }}>{clientName}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 10 }}>{clientName}</div>
+      <div style={{ display: "flex", gap: 18, marginBottom: 20 }}>
+        <StaffPicker dbKey="CLIENT" pageId={clientId} propName="내부 담당자" label="주담당자"
+          value={detail.client?.["내부 담당자"]} session={session} onSaved={load} />
+        <StaffPicker dbKey="CLIENT" pageId={clientId} propName="부담당자" label="부담당자"
+          value={detail.client?.["부담당자"]} session={session} onSaved={load} />
+      </div>
 
       {CLIENT_SECTIONS.map(sec => (
         <ClientSection
-          key={sec.key} section={sec} rows={detail[sec.key] || []}
+          key={sec.key} section={sec} rows={detail[sec.key] || []} session={session} onSaved={load}
           onOpenRow={(pageId) => setEditing({ dbKey: sec.dbKey, pageId })}
-          onNewRow={() => setEditing({ dbKey: sec.dbKey, pageId: null, prefillRelation: { targetKey: "CLIENT", id: clientId } })}
+          onNewRow={() => setEditing({ dbKey: sec.dbKey, pageId: null, prefillRelations: [{ targetKey: "CLIENT", id: clientId }] })}
+          extraRowAction={sec.key === "inquiries" ? (row) => {
+            const gated = row["상태"] === "계약" || (detail.projects || []).length > 0;
+            return gated ? (
+              <span style={{ fontSize: 11, color: C.textMuted }}>계약 확정 후에는 제조 프로젝트로 진행됩니다</span>
+            ) : (
+              <button type="button" onClick={(e) => {
+                e.stopPropagation();
+                setEditing({
+                  dbKey: "DEVREQUEST", pageId: null,
+                  prefillRelations: [{ targetKey: "INQUIRY", id: row.id }, { targetKey: "CLIENT", id: clientId }],
+                });
+              }} style={{ ...smallBtnStyle, height: 26, padding: "0 10px", fontSize: 11.5 }}>+ 의뢰서</button>
+            );
+          } : null}
         />
       ))}
     </div>
   );
 }
 
-function ClientSection({ section, rows, onOpenRow, onNewRow }) {
+function ClientSection({ section, rows, session, onSaved, onOpenRow, onNewRow, extraRowAction }) {
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -475,18 +507,130 @@ function ClientSection({ section, rows, onOpenRow, onNewRow }) {
       ) : (
         <div style={{ background: C.white, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.05)" }}>
           {rows.map(r => (
-            <div key={r.id} onClick={() => onOpenRow(r.id)} style={{
-              padding: "10px 14px", cursor: "pointer", borderTop: `1px solid ${C.borderLight}`,
-              display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13,
-            }}>
-              <span style={{ color: C.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {section.titleProp ? (r[section.titleProp] || "(제목 없음)") : (r["제출일"] || r["마지막 접속일"] || r.id.slice(0, 8))}
-              </span>
-              {r["상태"] != null && r["상태"] !== "" && <span style={{ fontSize: 11.5, color: C.textSub, flex: "none", marginLeft: 10 }}>{r["상태"]}</span>}
+            <div key={r.id} style={{ padding: "10px 14px", borderTop: `1px solid ${C.borderLight}`, display: "flex", flexDirection: "column", gap: 7 }}>
+              <div onClick={() => onOpenRow(r.id)} style={{
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13,
+              }}>
+                <span style={{ color: C.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {section.titleProp ? (r[section.titleProp] || "(제목 없음)") : (r["제출일"] || r["마지막 접속일"] || r.id.slice(0, 8))}
+                </span>
+                {r["상태"] != null && r["상태"] !== "" && <span style={{ fontSize: 11.5, color: C.textSub, flex: "none", marginLeft: 10 }}>{r["상태"]}</span>}
+              </div>
+              {(section.showStaff || extraRowAction) && (
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                  {section.showStaff && (
+                    <>
+                      <StaffPicker dbKey={section.dbKey} pageId={r.id} propName="내부 담당자" label="주담당자"
+                        value={r["내부 담당자"]} session={session} onSaved={onSaved} />
+                      <StaffPicker dbKey={section.dbKey} pageId={r.id} propName="부담당자" label="부담당자"
+                        value={r["부담당자"]} session={session} onSaved={onSaved} />
+                    </>
+                  )}
+                  {extraRowAction && extraRowAction(r)}
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── 담당자(주/부) 빠른 배정 — 폼을 열지 않고 그 자리에서 update 액션으로 바로 저장한다.
+// RelationRow와 같은 검색/칩 UI를 재사용하되, 대상 DB를 STAFF로 고정한 경량 버전.
+function StaffPicker({ dbKey, pageId, propName, label, value, session, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [ids, setIds] = useState(value || []);
+  const [names, setNames] = useState({});
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setIds(value || []); }, [value]);
+
+  useEffect(() => {
+    if (!ids.length) return;
+    callAdmin("relationSearch", { dbKey: "STAFF", query: "" }, session.sessionToken)
+      .then(d => {
+        const map = {};
+        d.options.forEach(o => { map[o.id] = o.name; });
+        setNames(prev => ({ ...prev, ...map }));
+      }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId]);
+
+  const search = (q) => {
+    callAdmin("relationSearch", { dbKey: "STAFF", query: q }, session.sessionToken)
+      .then(d => setResults(d.options))
+      .catch(() => {});
+  };
+
+  const add = (opt) => {
+    setIds(prev => prev.includes(opt.id) ? prev : [...prev, opt.id]);
+    setNames(prev => ({ ...prev, [opt.id]: opt.name }));
+    setQuery(""); setResults([]);
+  };
+  const remove = (id) => setIds(prev => prev.filter(v => v !== id));
+
+  const save = async (e) => {
+    e.stopPropagation();
+    setSaving(true);
+    try {
+      await callAdmin("update", { dbKey, pageId, properties: { [propName]: ids } }, session.sessionToken);
+      setOpen(false);
+      onSaved?.();
+    } catch {} finally { setSaving(false); }
+  };
+
+  if (!open) {
+    return (
+      <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(true); }} style={{
+        display: "inline-flex", alignItems: "center", gap: 5, border: 0, background: "transparent",
+        cursor: "pointer", fontFamily: FONT, fontSize: 11.5, color: ids.length ? C.textSub : C.textMuted, padding: 0,
+      }}>
+        <span style={{ fontWeight: 700 }}>{label}</span>
+        <span>{ids.length ? ids.map(id => names[id] || "…").join(", ") : "미배정"}</span>
+        <span style={{ color: C.accent }}>✎</span>
+      </button>
+    );
+  }
+
+  return (
+    <div onClick={e => e.stopPropagation()} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, background: C.white, minWidth: 220 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: C.textSub, marginBottom: 6 }}>{label}</div>
+      {ids.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
+          {ids.map(id => (
+            <span key={id} style={{
+              padding: "3px 5px 3px 9px", borderRadius: 99, background: C.accentLight, fontSize: 11.5,
+              display: "flex", alignItems: "center", gap: 5, color: C.accentDark, fontWeight: 700,
+            }}>
+              {names[id] || id.slice(0, 8) + "…"}
+              <button type="button" onClick={() => remove(id)} style={{ border: 0, background: "transparent", cursor: "pointer", color: C.accentDark, fontSize: 11 }}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input value={query} onChange={e => { setQuery(e.target.value); search(e.target.value); }}
+        onFocus={() => search(query)} placeholder="직원 검색..." style={{ ...inputStyle, height: 32, fontSize: 12.5 }} />
+      {results.length > 0 && (
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, marginTop: 4, maxHeight: 150, overflowY: "auto", background: C.white }}>
+          {results.map(o => (
+            <div key={o.id} onClick={() => add(o)} style={{ padding: "7px 10px", cursor: "pointer", fontSize: 12.5, borderBottom: `1px solid ${C.borderLight}` }}>{o.name}</div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+        <button type="button" onClick={save} disabled={saving} style={{
+          height: 30, padding: "0 12px", border: 0, borderRadius: 8, background: C.accent, color: C.white,
+          fontSize: 12, fontWeight: 700, fontFamily: FONT, cursor: "pointer", opacity: saving ? 0.6 : 1,
+        }}>{saving ? "저장 중..." : "저장"}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setIds(value || []); setOpen(false); }} style={{
+          height: 30, padding: "0 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: C.white,
+          fontSize: 12, fontFamily: FONT, cursor: "pointer", color: C.textSub,
+        }}>취소</button>
+      </div>
     </div>
   );
 }
@@ -569,7 +713,7 @@ const thStyle = { textAlign: "left", padding: "10px 14px", fontSize: 11.5, fontW
 const tdStyle = { padding: "10px 14px", color: C.text, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 // ━━━━━━━━━━ 생성 · 수정 폼 ━━━━━━━━━━
-function AdminRecordForm({ dbKey, pageId, session, allDbs, prefillRelation, onClose, onSaved, onAuthError }) {
+function AdminRecordForm({ dbKey, pageId, session, allDbs, prefillRelations, onClose, onSaved, onAuthError }) {
   const [schema, setSchema] = useState(null);
   const [values, setValues] = useState({});
   const [loading, setLoading] = useState(true);
@@ -586,9 +730,12 @@ function AdminRecordForm({ dbKey, pageId, session, allDbs, prefillRelation, onCl
       let row = d.row || {};
       // 거래처 상세에서 "+ 새로 만들기"로 들어왔을 때만 관계를 미리 채운다 — 대상 DB의 필드명이
       // '거래처명'/'제조 의뢰 거래처'로 다르므로 이름이 아니라 relationTarget으로 찾는다.
-      if (!pageId && prefillRelation) {
-        const f = d.schema.fields.find(f => f.type === "relation" && f.relationTarget === prefillRelation.targetKey);
-        if (f) row = { ...row, [f.name]: [prefillRelation.id] };
+      // 의뢰서를 문의에서 추가할 때처럼 대상이 여러 개일 수 있어 배열로 받는다.
+      if (!pageId && prefillRelations?.length) {
+        for (const pre of prefillRelations) {
+          const f = d.schema.fields.find(f => f.type === "relation" && f.relationTarget === pre.targetKey);
+          if (f) row = { ...row, [f.name]: [pre.id] };
+        }
       }
       setValues(row);
     })

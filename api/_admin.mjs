@@ -271,6 +271,10 @@ export async function getPipelineBoard(token) {
   for (const c of clients.results || []) {
     const clientId = c.id;
     const clientName = titleOf(c, '법인 · 개인명') || '(이름 없음)';
+    // 칸반 카드에서 바로 주/부 담당자를 지정할 수 있게 id만 실어 보낸다(이름은 프런트의
+    // StaffPicker가 relationSearch로 지연 조회 — RelationRow와 같은 방식).
+    const mainStaffIds = (c.properties?.['내부 담당자']?.relation || []).map(r => r.id);
+    const subStaffIds = (c.properties?.['부담당자']?.relation || []).map(r => r.id);
 
     const latestInquiry = (byInquiry[clientId] || [])[0];
     const latestDevreq = (byDevreq[clientId] || [])[0];
@@ -328,7 +332,7 @@ export async function getPipelineBoard(token) {
       .sort()
       .reverse()[0] || c.created_time;
 
-    buckets[bucket].push({ clientId, clientName, bucket, subLabel, lastActivityAt, contractDday });
+    buckets[bucket].push({ clientId, clientName, bucket, subLabel, lastActivityAt, contractDday, mainStaffIds, subStaffIds });
   }
 
   for (const k of columnKeys) {
