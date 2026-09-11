@@ -36,6 +36,10 @@ export const ADMIN_DBS = [
   { key: 'FIELD_CONFIG', label: '제조 앱 필드 설정', section: '포털·시스템' },
   { key: 'SYNC_ERROR', label: '제조 연동 오류 관리', section: '포털·시스템' },
   { key: 'CATALOG', label: '제조 품목', section: '포털·시스템' },
+  // Admin.jsx의 SYSTEM_DB_KEYS에는 넣지 않는다 — 좌측 "시스템" 메뉴로 노출되는 일반 CRUD
+  // 목록이 아니라, dbEntry/getDbSchema/relationSearch가 담당자 선택 용도로만 내부적으로
+  // 쓰게 한다(직원 인사정보를 이 앱에서 목록·조회하게 열어줄 이유가 없음).
+  { key: 'STAFF', label: '내부 직원(담당자 배정용)', section: '시스템' },
 ];
 const ADMIN_DB_BY_KEY = Object.fromEntries(ADMIN_DBS.map(d => [d.key, d]));
 // Notion이 관계 속성에서 돌려주는 database_id(대시 없는 32자)로 우리 DB.key를 역추적하기 위한 표.

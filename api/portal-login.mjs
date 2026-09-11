@@ -9,6 +9,20 @@
 import { DB, notionCall, queryDb, plain, cors } from './_notion.mjs';
 import { findAccessMatch } from './_access.mjs';
 
+// 담당자(주/부) 정보는 다른 워크스페이스(BUSINESS OS)의 '임직원 정보' 페이지를 그대로
+// 가져오는 게 아니라, 이름·직책·이메일·연락처 4개만 뽑는다. 재직상태·부서·명함이나
+// 🔴/🟣로 표시된 내부 전용 relation은 절대 고객에게 보내지 않는다(화이트리스트 방식).
+function staffPublicInfo(page) {
+  const pr = page.properties || {};
+  return {
+    id: page.id,
+    name: plain(pr['이름'], 'title'),
+    position: plain(pr['직책'], 'select'),
+    email: pr['이메일']?.email || '',
+    phone: pr['연락처']?.phone_number || '',
+  };
+}
+
 // 제품개발의뢰서 상세를 고객이 직접 확인할 수 있도록, 프론트(App.jsx의 DEV_FIELD_GROUPS)와
 // 같은 키로 전체 속성을 돌려준다. 값이 없는 필드는 프론트에서 알아서 숨긴다.
 // 원료 항목은 노션에 줄바꿈으로 이어 붙여 저장돼 있다 — 앱에서는 다시 줄 단위로 다룬다.
@@ -71,6 +85,8 @@ function mapProductDetail(p) {
     countryLimits: plain(pr['국가별제한사항'], 'text'),
     launchDate: plain(pr['희망런칭일정'], 'date'),
     additionalNotes: plain(pr['추가요청사항'], 'text'),
+    mainStaffIds: plain(pr['내부 담당자'], 'relation'),
+    subStaffIds: plain(pr['부담당자'], 'relation'),
   };
 }
 
@@ -307,6 +323,25 @@ export default async function handler(req, res) {
 
     const latestMeeting = (meetings.results || [])[0];
 
+    // 문의·의뢰서에 배정된 담당자(주/부)를 모아 중복 없이 조회한다. 페이지 전체를 그대로
+    // 내려보내지 않고 staffPublicInfo로 4개 필드만 뽑아서 보낸다.
+    const inquiryMainStaffIds = plain(inquiryPage.properties?.['내부 담당자'], 'relation');
+    const inquirySubStaffIds = plain(inquiryPage.properties?.['부담당자'], 'relation');
+    const devreqPages = devreqs.results || [];
+    const allStaffIds = [...new Set([
+      ...inquiryMainStaffIds, ...inquirySubStaffIds,
+      ...devreqPages.flatMap(p => [
+        ...plain(p.properties?.['내부 담당자'], 'relation'),
+        ...plain(p.properties?.['부담당자'], 'relation'),
+      ]),
+    ])];
+    const staffPages = await Promise.all(
+      allStaffIds.map(id => notionCall(TOKEN, 'GET', `/pages/${id}`).catch(() => null))
+    );
+    const staffById = {};
+    staffPages.forEach(p => { if (p) staffById[p.id] = staffPublicInfo(p); });
+    const resolveStaff = (ids) => ids.map(id => staffById[id]).filter(Boolean);
+
     // 가견적 항목을 소속 가견적(헤더) ID별로 묶는다.
     const itemsByEstimate = {};
     for (const itemPage of (estimateItems.results || [])) {
@@ -348,6 +383,8 @@ export default async function handler(req, res) {
         name: inquiryDisplayName,
         uid: plain(inquiryPage.properties?.['고유 ID'], 'text'),
         status: plain(inquiryPage.properties?.['상태'], 'status'),
+        mainStaff: resolveStaff(inquiryMainStaffIds),
+        subStaff: resolveStaff(inquirySubStaffIds),
       },
       client: {
         id: clientId,
@@ -364,7 +401,11 @@ export default async function handler(req, res) {
         confirmed: plain(latestMeeting.properties?.['미팅 확정일'], 'date'),
         zoomLink: plain(latestMeeting.properties?.['ZOOM Link'], 'url'),
       } : null,
-      products: (devreqs.results || []).map(mapProductDetail),
+      products: devreqPages.map(mapProductDetail).map(({ mainStaffIds, subStaffIds, ...rest }) => ({
+        ...rest,
+        mainStaff: resolveStaff(mainStaffIds),
+        subStaff: resolveStaff(subStaffIds),
+      })),
       estimates,
       contracts: (contracts.results || []).map(mapContract),
       projects: projectList,

@@ -40,6 +40,9 @@ export const DB = {
   FIELD_CONFIG: '65283f72-d68d-4977-9279-b81cf4129528',
   // 제조 연동 오류 관리 (관리자 페이지용)
   SYNC_ERROR: 'ec372b0a-1913-4d31-807a-6b024e953f3c',
+  // 임직원 정보(내부 공유용) — BUSINESS OS 워크스페이스, 제조사V2와 다른 상위 페이지.
+  // 담당자(주/부) 배정용으로만 쓴다. NOTION_TOKEN 통합이 이 DB에도 연결되어 있어야 한다.
+  STAFF: '3844c864-7128-803e-9895-000b5e824956',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
