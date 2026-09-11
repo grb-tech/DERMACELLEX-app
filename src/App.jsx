@@ -2633,7 +2633,39 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
     };
     const placeholder = { background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)" };
 
-    let hero = { label: t("다음 행동", "Next Step"), title: t("담당자 배정 대기", "Awaiting Assignment"), sub: t("곧 담당자가 배정되어 안내드립니다.", "A team member will be assigned to you shortly."), cta: null };
+    // 담당자(주/부) 카드 — 문의 전체 담당자와 제품개발의뢰서별 담당자가 다를 수 있어 양쪽에서 재사용.
+    const renderStaffCard = (mainStaff, subStaff) => {
+      const people = [
+        ...(mainStaff || []).map(s => ({ ...s, roleLabel: t("주담당자", "Main Contact") })),
+        ...(subStaff || []).map(s => ({ ...s, roleLabel: t("부담당자", "Secondary Contact") })),
+      ].filter(p => p.name);
+      if (people.length === 0) return null;
+      return (
+        <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,.05)", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A8E" }}>{t("담당자", "Your Contact")}</div>
+          {people.map((p, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 40, height: 40, flex: "none", borderRadius: 12, background: "#F1F1F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "#434343" }}>{p.name.slice(0, 1)}</span>
+              <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>{p.name}</span>
+                  {p.position && <span style={{ fontSize: 11.5, color: "#8A8A8E", fontWeight: 600 }}>{p.position}</span>}
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: C.accent, background: "#FDF1EC", padding: "2px 7px", borderRadius: 99 }}>{p.roleLabel}</span>
+                </span>
+                <span style={{ fontSize: 12, color: "#8A8A8E", fontWeight: 600, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {p.email && <span>{p.email}</span>}
+                  {p.phone && <span>{p.phone}</span>}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    let hero = inquiry.mainStaff?.length
+      ? { label: t("담당자", "Your Contact"), title: inquiry.mainStaff.map(s => s.name).filter(Boolean).join(", "), sub: t("곧 상담 일정을 안내드립니다.", "We'll reach out to schedule a consultation soon."), cta: null }
+      : { label: t("다음 행동", "Next Step"), title: t("담당자 배정 대기", "Awaiting Assignment"), sub: t("곧 담당자가 배정되어 안내드립니다.", "A team member will be assigned to you shortly."), cta: null };
     if (meeting?.confirmed) {
       hero = { label: t("확정된 일정", "Confirmed Schedule"), title: t("제조 상담", "Consultation"), sub: fmt(meeting.confirmed), cta: meeting.zoomLink ? { label: t("Zoom 접속", "Join Zoom"), href: meeting.zoomLink } : null };
     } else if (meeting) {
@@ -2649,13 +2681,21 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
               <div style={{ fontSize: 13, color: "#8A8A8E", fontWeight: 700 }}>{[client?.name, contact?.name].filter(Boolean).join(" · ") || t("고객", "Customer")}</div>
               <div style={{ fontSize: 23, fontWeight: 800, color: "#111", letterSpacing: -0.8, marginTop: 3 }}>{inquiry.status ? t(inquiry.status) : "-"}</div>
             </div>
-            <button onClick={refreshPortalData} title={t("새로고침", "Refresh")} style={{
-              width: 42, height: 42, borderRadius: 14, background: "#fff", border: 0, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,.06)", position: "relative",
-            }}>
-              <span style={{ fontSize: 16 }}>↻</span>
-              <span style={{ position: "absolute", top: 8, right: 9, width: 7, height: 7, borderRadius: 99, background: C.accent }} />
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setPhase("intro")} title={t("메인 홈으로", "Back to Home")} style={{
+                width: 42, height: 42, borderRadius: 14, background: "#fff", border: 0, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,.06)",
+              }}>
+                <span style={{ fontSize: 16 }}>🏠</span>
+              </button>
+              <button onClick={refreshPortalData} title={t("새로고침", "Refresh")} style={{
+                width: 42, height: 42, borderRadius: 14, background: "#fff", border: 0, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,.06)", position: "relative",
+              }}>
+                <span style={{ fontSize: 16 }}>↻</span>
+                <span style={{ position: "absolute", top: 8, right: 9, width: 7, height: 7, borderRadius: 99, background: C.accent }} />
+              </button>
+            </div>
           </div>
 
           {portalTab === "home" && (<>
@@ -2688,6 +2728,8 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                 ))}
               </div>
             </div>
+
+            {renderStaffCard(inquiry.mainStaff, inquiry.subStaff)}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <button onClick={() => setPortalTab("inquiry")} style={{ textAlign: "left", background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.05)", border: 0, cursor: "pointer", fontFamily: FONT }}>
@@ -2819,6 +2861,11 @@ function MainFlow({ initialPortalEmail, initialPortalCode }) {
                             border: "1.5px solid #E4E4E4", background: "#fff", color: "#434343", fontSize: 12.5, fontWeight: 800,
                           }}>{t("수정하기", "Edit")}</button>
                         )}
+                        {(p.mainStaff?.length || p.subStaff?.length) ? (
+                          <div style={{ fontSize: 12.5, color: "#434343", fontWeight: 700 }}>
+                            {t("담당자", "Contact")} · {[...(p.mainStaff || []), ...(p.subStaff || [])].map(s => s.name).filter(Boolean).join(", ")}
+                          </div>
+                        ) : null}
                         {filled.length === 0 && <div style={{ fontSize: 12.5, color: "#B0B0B4", fontWeight: 600 }}>{t("작성된 상세 항목이 없습니다.", "No details entered yet.")}</div>}
                         {filled.map(({ f, value }) => (
                           <div key={f.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
