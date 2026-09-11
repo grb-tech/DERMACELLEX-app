@@ -42,7 +42,12 @@ export const DB = {
   SYNC_ERROR: 'ec372b0a-1913-4d31-807a-6b024e953f3c',
   // 임직원 정보(내부 공유용) — BUSINESS OS 워크스페이스, 제조사V2와 다른 상위 페이지.
   // 담당자(주/부) 배정용으로만 쓴다. NOTION_TOKEN 통합이 이 DB에도 연결되어 있어야 한다.
-  STAFF: '3844c864-7128-803e-9895-000b5e824956',
+  // 주의: 이 값은 "데이터베이스" ID(페이지 ID)다 — 관계 속성이 가리키는 내부 데이터소스 ID
+  // (3844c864-7128-803e-9895-000b5e824956, notion-update-data-source에서 RELATION 대상으로
+  // 쓴 값)와는 다르다. REST API(GET/POST /v1/databases/{id})는 항상 이 데이터베이스 ID를 써야
+  // 한다 — 데이터소스 ID를 잘못 넣으면 404가 나고, 관리자 화면의 담당자 검색은 이 오류를
+  // catch(()=>{})로 조용히 삼켜서 "검색 결과가 그냥 안 뜨는" 것처럼 보인다(2026-09-11 확인).
+  STAFF: '38e4c864-7128-80da-be96-e38d749b1339',
 };
 
 export function queryDb(token, databaseId, filter, sorts) {
